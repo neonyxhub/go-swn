@@ -9,7 +9,7 @@ It was developed as core part of [Neonyx Ecosystem](https://neonyx.io)
 
 [specs](https://github.com/neonyxhub/swn-specs) - technical specification of SWN processes
 
-[docs](https://github.com/neonyxhub/sws-docs/swn) - documentation about SWN usage
+[docs](https://github.com/neonyxhub/sws-docs/tree/main/swn) - documentation about SWN usage
 
 ## Contribution
 
