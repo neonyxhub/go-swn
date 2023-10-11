@@ -1,0 +1,11 @@
+#!/bin/bash
+
+COMMIT_MSG=$(cat $1)
+PATTERN="^.+: .+$"
+
+if ! [[ $COMMIT_MSG =~ $PATTERN ]]; then
+	echo "ERROR: Commit message format is not correct!"
+	echo "Expected format: <subject>: <brief description>"
+	exit 1
+fi
+echo OK

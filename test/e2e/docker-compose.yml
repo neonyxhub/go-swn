@@ -1,0 +1,37 @@
+version: "3.5"
+
+services:
+  cwn1:
+    build:
+      context: cwn
+      dockerfile: Dockerfile.cwn1
+    volumes:
+      - ./testdata/debug.yml:/app/debug.yml
+    container_name: cwn1
+    depends_on:
+      - swn1
+      - swn2
+
+  swn1:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    ports:
+      - 8081:8081
+      - 65001:65001
+    volumes:
+      - ./testdata:/app/test/e2e/testdata
+    container_name: swn1
+    command: -config test/e2e/testdata/config_swn1.yaml -debug=true
+
+  swn2:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    ports:
+      - 8082:8082
+      - 65002:65002
+    volumes:
+      - ./testdata:/app/test/e2e/testdata
+    container_name: swn2
+    command: -config test/e2e/testdata/config_swn2.yaml -debug=true

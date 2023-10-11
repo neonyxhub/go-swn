@@ -1,0 +1,41 @@
+syntax = "proto3";
+package bus_api.pb;
+option go_package = "go.neonyx.io/go-swn/internal/swn/pb";
+
+import "google/protobuf/empty.proto";
+
+service SWNBus {
+	// swn here is the server, which listens to events from cwn
+	rpc LocalDistributeEvents(stream Event) returns (StreamEventsResponse) {};
+	// swn here is the server, which gives events to CWN
+	rpc LocalFunnelEvents(ListenEventsRequest) returns (stream Event) {};
+	rpc GetPeerId(google.protobuf.Empty) returns (Peer) {};
+}
+
+message Destination {
+	bytes Addr = 1;
+}
+
+message LexiconUri {
+	string Uri = 1;
+}
+
+message Event {
+	Destination Dest = 1;
+	LexiconUri Lexicon = 2;
+	bytes Data = 3;
+}
+
+message Peer {
+	bytes Id = 1;
+}
+
+// could be implemented in future
+
+message ListenEventsRequest {}
+message StreamEventsResponse {}
+
+
+message JWT {
+	bytes AccountID = 1;
+}

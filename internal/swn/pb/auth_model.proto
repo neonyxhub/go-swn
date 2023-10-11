@@ -1,0 +1,27 @@
+syntax = "proto3";
+package auth_model.pb;
+option go_package = "go.neonyx.io/go-swn/internal/swn/pb";
+
+enum KeyType {
+	RSA = 0;
+	Ed25519 = 1;
+	Secp256k1 = 2;
+	ECDSA = 3;
+}
+
+message DeviceId {
+	bytes Device_id = 1;
+}
+
+message AccID {
+	bytes Acc_id = 1;
+}
+
+message PeerId {
+	bytes Data = 1;
+}
+
+message AuthInfo {
+	bytes OtherDevicePubKey = 1;
+	bytes MyDevicePrivateKey = 2;
+}

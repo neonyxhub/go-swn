@@ -1,0 +1,14 @@
+---
+grpc_server:
+  addr: :8081
+datastore:
+  path: data/swn1
+p2p:
+  multiaddr: "/ip4/0.0.0.0/tcp/65001"
+  privkey_filepath: "/tmp/peer1.key"
+log:
+  dev: true
+  out_paths:
+    - stdout
+  err_paths:
+    - stderr

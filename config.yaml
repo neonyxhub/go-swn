@@ -1,0 +1,15 @@
+---
+grpc_server:
+  addr: :8080
+datastore:
+  path: data
+p2p:
+  multiaddr: "/ip4/0.0.0.0/tcp/0"
+  privkey_filepath: "/tmp/peer.key"
+log:
+  dev: true
+  out_paths:
+    - stdout
+    #- logs/out.log
+  err_paths:
+    - stderr
