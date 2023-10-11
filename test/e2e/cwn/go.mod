@@ -15,7 +15,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	go.neonyx.io/go-swn v0.0.0-20231010103935-b724f72c1a61 // indirect
+	go.neonyx.io/go-swn v0.0.0-20231011142023-633e843faa1d // indirect
 	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
 	golang.org/x/net v0.14.0 // indirect

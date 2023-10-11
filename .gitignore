@@ -1,0 +1,8 @@
+internal/**/*.pb.go
+.vscode
+cmd/swn/swn
+logs/
+mock/
+data/
+*.out
+test/e2e/testdata/debug.yml

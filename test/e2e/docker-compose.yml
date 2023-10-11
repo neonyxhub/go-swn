@@ -6,7 +6,8 @@ services:
       context: cwn
       dockerfile: Dockerfile.cwn1
     volumes:
-      - ./testdata/debug.yml:/app/debug.yml
+      - ./cwn:/app
+      - ./testdata:/testdata
     container_name: cwn1
     depends_on:
       - swn1

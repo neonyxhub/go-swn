@@ -1,0 +1,8 @@
+repos:
+- repo: local
+  hooks:
+  - id: commit-msg-hook
+    name: 'Commit Message Hook'
+    stages: [commit-msg]
+    language: script
+    entry: deployment/commit-msg-hook
