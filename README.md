@@ -1,6 +1,15 @@
 # go-swn
 
-SWN is a universal node to distribute and collect events across the network
+**SWN** - **S**overeign **W**eb **N**ode. Universal unit to distribute events and actions among the network.
+
+It was developed as core part of [Neonyx Ecosystem](https://neonyx.io)
+
+## Background
+```WARN``` this repository and all related are under active development and should be considered as v0.0.1-beta.
+
+[specs](https://github.com/neonyxhub/swn-specs) - technical specification of SWN processes
+
+[docs](https://github.com/neonyxhub/sws-docs/swn) - documentation about SWN usage
 
 ## Contribution
 
