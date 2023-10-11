@@ -80,29 +80,19 @@ func (s *SWN) PassEventToNetwork(evt *pb.Event) error {
 	}
 
 	ma, err := multiaddr.NewMultiaddrBytes(evt.Dest.GetAddr())
-
-	s.Log.Sugar().Infof("11111: %s\n", evt.Dest.GetAddr())
-	s.Log.Sugar().Infof("11111_ma: %s\n", ma)
-
 	if err != nil {
 		return err
 	}
-
-	s.Log.Info("2222")
 
 	info, err := peer.AddrInfoFromP2pAddr(ma)
 	if err != nil {
 		return err
 	}
 
-	s.Log.Info("3333")
-
 	err = s.Peer.EstablishConn(ma)
 	if err != nil {
 		return err
 	}
-
-	s.Log.Info("4444")
 
 	conns := s.Peer.Host.Network().ConnsToPeer(info.ID)
 	if len(conns) != 0 {
