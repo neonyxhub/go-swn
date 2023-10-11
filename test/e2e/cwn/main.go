@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/multiformats/go-multiaddr"
 	"go.neonyx.io/go-swn/pkg/bus/pb"
@@ -25,35 +26,44 @@ type debugPeers struct {
 }
 
 var (
-	peers      *debugPeers
 	swn1, swn2 debugPeerInfo
 )
 
 func fetchPeers() {
-	if _, err := os.Stat("debug.yml"); os.IsNotExist(err) {
-		log.Fatal("debug.yml is missing")
+	p := &debugPeers{}
+	const debugYml = "/testdata/debug.yml"
+
+	for retry := 0; retry < 3; retry++ {
+		time.Sleep(1 * time.Second)
+
+		if _, err := os.Stat(debugYml); os.IsNotExist(err) {
+			log.Println("debug.yml is missing")
+			continue
+		}
+
+		data, err := os.ReadFile(debugYml)
+		if err != nil {
+			log.Fatalf("failed to read debug.yml: %v", err)
+		}
+
+		err = yaml.Unmarshal(data, p)
+		if err != nil {
+			log.Fatalf("failed to unmarshal debug.yml: %v", err)
+		}
+
+		if len(p.Peers) != 2 {
+			log.Println("should be 2 peers (swn1, swn2) in debug.yml")
+			continue
+		}
+
+		break
 	}
 
-	data, err := os.ReadFile("debug.yml")
-	if err != nil {
-		log.Fatalf("failed to read debug.yml: %v", err)
-	}
-
-	peers := &debugPeers{}
-	err = yaml.Unmarshal(data, peers)
-	if err != nil {
-		log.Fatalf("failed to unmarshal debug.yml: %v", err)
-	}
-
-	if len(peers.Peers) != 2 {
-		log.Fatal("should be 2 peers (swn1, swn2) in debug.yml")
-	}
-
-	for _, p := range peers.Peers {
-		if p.GrpcServerPort == 8081 {
-			swn1 = p
-		} else if p.GrpcServerPort == 8082 {
-			swn2 = p
+	for _, peer := range p.Peers {
+		if peer.GrpcServerPort == 8081 {
+			swn1 = peer
+		} else if peer.GrpcServerPort == 8082 {
+			swn2 = peer
 		}
 	}
 }
@@ -82,7 +92,8 @@ func main() {
 	log.Printf("swn2: %s", swn2.PeerId)
 
 	// connect to swn1 gRPC
-	conn1, err := grpc.Dial(":8081", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	swn1Addr := fmt.Sprintf("%s:%d", swn1.PeerIpv4, swn1.GrpcServerPort)
+	conn1, err := grpc.Dial(swn1Addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("failed to connect to swn1 gRPC: %v", err)
 	}
@@ -92,7 +103,8 @@ func main() {
 	log.Println("connected to swn1 gRPC")
 
 	// connect to swn2 gRPC
-	conn2, err := grpc.Dial(":8082", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	swn2Addr := fmt.Sprintf("%s:%d", swn2.PeerIpv4, swn2.GrpcServerPort)
+	conn2, err := grpc.Dial(swn2Addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("failed to connect to swn2 gRPC: %v", err)
 	}

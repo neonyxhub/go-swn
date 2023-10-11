@@ -1,0 +1,25 @@
+linters-settings:
+  #lll:
+  #  line-length: 80
+  gofmt:
+    simplify: true
+    tabs: true
+    tab-width: 8
+
+linters:
+  enable:
+    #- lll
+    - gofmt
+    - whitespace
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        #- lll
+        - gofmt
+        - whitespace
+
+run:
+  tests: true

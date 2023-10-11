@@ -2,11 +2,8 @@ package grpc_server
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
-	"os"
-	"time"
 
 	"go.neonyx.io/go-swn/pkg/bus/pb"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -47,15 +44,11 @@ func (sBus *SWNBusServer) LocalFunnelEvents(in *pb.ListenEventsRequest, srv pb.S
 	for {
 		select {
 		case <-srv.Context().Done():
-			fmt.Fprintln(os.Stdout, "!!! DONE")
 			return nil
 		case event := <-sBus.EventToLocal:
 			if err := srv.Send(event); err != nil {
 				log.Printf("send error %v", err)
 			}
-		default:
-			fmt.Fprintln(os.Stdout, "!!! WAITING")
-			time.Sleep(1 * time.Second)
 		}
 	}
 }

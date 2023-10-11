@@ -13,7 +13,7 @@ import (
 
 func main() {
 	cfgPath := flag.String("config", "config.yaml", "path to the config file")
-	debug := flag.Bool("debug", false, "debug mode and save peer info to blockchain.yml")
+	debug := flag.Bool("debug", false, "debug mode and save peer info to debug.yml")
 	flag.Parse()
 
 	cfg, err := neo_cfg.ReadConfigYaml(*cfgPath)

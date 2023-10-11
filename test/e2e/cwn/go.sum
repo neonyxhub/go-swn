@@ -26,6 +26,8 @@ github.com/spaolacci/murmur3 v1.1.0 h1:7c1g84S4BPRrfL5Xrdp6fOJ206sU9y293DDHaoy0b
 github.com/spaolacci/murmur3 v1.1.0/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 go.neonyx.io/go-swn v0.0.0-20231010103935-b724f72c1a61 h1:RBHZ20VSHI0i5G6oRp/jVuQNkwUe2Bj531E3MTeYT2c=
 go.neonyx.io/go-swn v0.0.0-20231010103935-b724f72c1a61/go.mod h1:8TQtWNsYrUyLoTdNJumxPII6SlkumYIupyf9gHNsgsk=
+go.neonyx.io/go-swn v0.0.0-20231011142023-633e843faa1d h1:BYwvkG1k+Pi8teBowu7+fJUqNrgpS2s37C1rwDw485E=
+go.neonyx.io/go-swn v0.0.0-20231011142023-633e843faa1d/go.mod h1:8TQtWNsYrUyLoTdNJumxPII6SlkumYIupyf9gHNsgsk=
 golang.org/x/crypto v0.12.0 h1:tFM/ta59kqch6LlvYnPa0yx5a83cL2nHflFhYKvv9Yk=
 golang.org/x/crypto v0.12.0/go.mod h1:NF0Gs7EO5K4qLn+Ylc+fih8BSTeIjAP05siRnAh98yw=
 golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 h1:m64FZMko/V45gv0bNmrNYoDEq8U5YUhetc9cBWKS1TQ=

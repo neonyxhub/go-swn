@@ -2,15 +2,24 @@
 
 set -e
 
-docker-compose -f e2e/docker-compose.yml up -d swn1 swn2
+swn() {
+	docker-compose -f e2e/docker-compose.yml up swn1 swn2
+}
 
-# TODO: run cwn as docker container
-sleep 2
+echo "peers: []" > e2e/testdata/debug.yml
+swn &
 
-cp e2e/testdata/debug.yml e2e/cwn/
-cd e2e/cwn/
-go run main.go
-cd -
+docker-compose -f e2e/docker-compose.yml up cwn1
 
-docker-compose -f e2e/docker-compose.yml stop swn1 swn2
+while true; do
+	status=$(docker-compose -f e2e/docker-compose.yml ps cwn1 | grep 'Exit' || true)
+	if [[ ! -z "$status" ]]; then
+		echo "cwn1 has exited, stopping other services..."
+		docker-compose -f e2e/docker-compose.yml stop swn1 swn2
+		break
+	fi
+	echo "[*] waiting for cwn1 to exit..."
+	sleep 1
+done
+
 rm -f e2e/testdata/debug.yml

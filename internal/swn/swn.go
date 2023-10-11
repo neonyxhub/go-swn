@@ -3,7 +3,6 @@ package swn
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/libp2p/go-libp2p"
@@ -99,13 +98,12 @@ func (s *SWN) Run() error {
 	s.Log.Sugar().Infof("starting %d handlers", len(s.Handlers))
 	for _, h := range s.Handlers {
 		s.Peer.Host.SetStreamHandler(protocol.ID(h.Id), func(stream network.Stream) {
-			fmt.Fprintf(os.Stdout, "starting handler %s\n", h.Id)
 			h.Func(stream)
 		})
 	}
 
 	for _, p := range s.Peer.Host.Mux().Protocols() {
-		s.Log.Sugar().Infof("protocol: %v\n", p)
+		s.Log.Sugar().Infof("protocol: %v", p)
 	}
 
 	if err := s.StartEventListening(); err != nil {
