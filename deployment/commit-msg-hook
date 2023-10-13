@@ -2,8 +2,9 @@
 
 COMMIT_MSG=$(cat $1)
 PATTERN="^.+: .+$"
+PATTERN_MERGE="^M|merge .+$"
 
-if ! [[ $COMMIT_MSG =~ $PATTERN ]]; then
+if ! [[ $COMMIT_MSG =~ $PATTERN || $COMMIT_MSG =~ $PATTERN_MERGE ]]; then
 	echo "ERROR: Commit message format is not correct!"
 	echo "Expected format: <subject>: <brief description>"
 	exit 1
