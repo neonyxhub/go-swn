@@ -37,6 +37,7 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 ### Git commit
 * Git commit messages should follow the pattern `<subject>: <description>`
+* Check [deployment/commit-msg-hook](deployment/commit-msg-hook) for details
 
 ### Tests
 

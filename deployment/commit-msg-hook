@@ -1,12 +1,25 @@
 #!/bin/bash
 
-COMMIT_MSG=$(cat $1)
+# DISCLAIMER: we really don't want to constrain with excess rules,
+# but rather try to keep a convention, inspired by the best open-source
+# project Linux kernel [1]. So this is a subject to be changed later.
+# [1] https://www.kernel.org/doc/html/latest/process/submitting-patches.html#the-canonical-patch-format
+
+COMMIT_MSG=$1
 PATTERN="^.+: .+$"
 PATTERN_MERGE="^M|merge .+$"
 
-if ! [[ $COMMIT_MSG =~ $PATTERN || $COMMIT_MSG =~ $PATTERN_MERGE ]]; then
+COMMIT_MSG_HEADER=$(head -n 1 $COMMIT_MSG)
+
+if ! [[ $COMMIT_MSG_HEADER =~ $PATTERN || $COMMIT_MSG_HEADER =~ $PATTERN_MERGE ]]; then
 	echo "ERROR: Commit message format is not correct!"
-	echo "Expected format: <subject>: <brief description>"
+	echo "Expected format: '<subject>: <brief description>' or 'Merge main to dev'"
+	echo "Examples:"
+	echo -e "\tswn: updated abc method"
+	echo -e "\tswn/proto: updated DeviceId in auth_model.proto"
+	echo -e "\tdockerfile: updated base image"
+	echo -e "\tMerge main to dev"
 	exit 1
 fi
+
 echo OK
