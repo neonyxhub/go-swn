@@ -57,7 +57,7 @@ func TestEventHandler2(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender)
 
-	sender.Peer.EstablishConn(getter.Peer.Getp2pMA())
+	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
 	require.Equal(t, len(conns), 1)
 	stream, err := conns[0].NewStream(context.Background())
@@ -85,7 +85,7 @@ func TestAuthHandler(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender)
 
-	sender.Peer.EstablishConn(getter.Peer.Getp2pMA())
+	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
 	require.Equal(t, len(conns), 1)
 	_, err = conns[0].NewStream(context.Background())

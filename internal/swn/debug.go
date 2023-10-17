@@ -21,7 +21,7 @@ type debugPeers struct {
 }
 
 func (s *SWN) DebugSavePeerInfo() error {
-	port, err := s.GetPeerTransportPort("tcp")
+	port, err := s.Peer.GetTransportPort("tcp")
 	if err != nil {
 		return err
 	}

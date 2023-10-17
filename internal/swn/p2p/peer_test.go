@@ -1,6 +1,7 @@
 package p2p_test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -23,10 +24,8 @@ func stopPeer(t *testing.T, peer *p2p.Peer) {
 
 func TestNew(t *testing.T) {
 	var cfg config.Config
-	cfg.P2p.PrivKeyPath = ""
 	peer := newPeer(t, &cfg)
 	defer stopPeer(t, peer)
-	require.True(t, peer.KeyPair.IsGenerated, "should be generated")
 }
 
 func TestStop(t *testing.T) {
@@ -45,7 +44,7 @@ func TestEstablishConn(t *testing.T) {
 	defer stopPeer(t, sender)
 
 	getterMultiAddr := getter.Getp2pMA()
-	err := sender.EstablishConn(getterMultiAddr)
+	err := sender.EstablishConn(context.Background(), getterMultiAddr)
 	require.NoError(t, err)
 
 	senderConns := sender.Host.Network().Conns()
@@ -73,7 +72,7 @@ func TestGetp2pMA(t *testing.T) {
 	tcpPort := parts[4]
 
 	require.Equal(t, peer.Host.ID().String(), peerId)
-	require.Equal(t, maddrStr, fmt.Sprintf("/ip4/127.0.0.1/tcp/%s/p2p/%s", tcpPort, peerId))
+	require.Equal(t, maddrStr, fmt.Sprintf("/ip4/%v/tcp/%s/p2p/%s", peer.GetIpv4(), tcpPort, peerId))
 }
 
 func TestGetIpv4(t *testing.T) {
@@ -83,4 +82,18 @@ func TestGetIpv4(t *testing.T) {
 
 	ipv4 := peer.GetIpv4()
 	require.NotEqual(t, ipv4, "127.0.0.1")
+}
+
+func TestGetTransportPort(t *testing.T) {
+	var cfg config.Config
+	peer := newPeer(t, &cfg)
+	defer stopPeer(t, peer)
+
+	port, err := peer.GetTransportPort("tcp")
+	require.NoError(t, err)
+	require.NotEmpty(t, port)
+
+	port, err = peer.GetTransportPort("abc")
+	require.Error(t, err)
+	require.Empty(t, port)
 }

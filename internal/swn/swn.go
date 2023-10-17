@@ -2,14 +2,11 @@ package swn
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"github.com/multiformats/go-multiaddr"
 	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
 
 	neo_ds "go.neonyx.io/go-swn/internal/ds"
@@ -22,7 +19,7 @@ import (
 
 type Handler struct {
 	Id   string
-	Func func(network.Stream)
+	Func network.StreamHandler
 }
 
 // Main structure of module with necessary pointers to components
@@ -32,7 +29,8 @@ type SWN struct {
 	DsCfg      *drivers.DataStoreCfg
 	GrpcServer *grpc_server.GrpcServer
 	Peer       *p2p.Peer
-	Handlers   []*Handler
+	Device     *Device
+	Handlers   []Handler
 	Log        logger.Logger
 	Ctx        context.Context
 	CtxCancel  context.CancelFunc
@@ -78,17 +76,36 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 	}
 	swn.Ds = driver
 
-	swn.ApplyDefaultHandlers()
+	// init device
+	swn.Device = &Device{}
 
 	swn.GrpcServer = grpc_server.New()
 	swn.GrpcServer.Log = log
 	swn.GrpcServer.Bus.PeerId = []byte(swn.ID())
+
+	swn.ApplyDefaultHandlers()
 
 	return &swn, nil
 }
 
 // Serves gRPC server, set p2p network stream handlers and starts event listening
 func (s *SWN) Run() error {
+	if err := s.Device.GenKeyPair(); err != nil {
+		return err
+	}
+	//deviceAuth, err := s.GetDeviceAuth()
+	//if err != nil {
+	//	return err
+	//}
+	//if deviceAuth.PrivKey == nil {
+	//	if err := s.Device.GenKeyPair(); err != nil {
+	//		return err
+	//	}
+	//	if err = s.SaveDeviceAuth(); err != nil {
+	//		return err
+	//	}
+	//}
+
 	s.Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
 	if err := s.GrpcServer.Serve(s.Cfg.GrpcServer.Addr); err != nil {
 		s.Ds.Close()
@@ -97,9 +114,7 @@ func (s *SWN) Run() error {
 
 	s.Log.Sugar().Infof("starting %d handlers", len(s.Handlers))
 	for _, h := range s.Handlers {
-		s.Peer.Host.SetStreamHandler(protocol.ID(h.Id), func(stream network.Stream) {
-			h.Func(stream)
-		})
+		s.Peer.Host.SetStreamHandler(protocol.ID(h.Id), h.Func)
 	}
 
 	for _, p := range s.Peer.Host.Mux().Protocols() {
@@ -151,43 +166,6 @@ func (s *SWN) Stop() error {
 	return nil
 }
 
-func (s *SWN) GetPeerTransportPort(p string) (string, error) {
-	var port string
-	var proto int
-
-	switch p {
-	case "tcp":
-		proto = multiaddr.P_TCP
-	case "udp":
-		proto = multiaddr.P_UDP
-	case "quic":
-		proto = multiaddr.P_QUIC
-	default:
-		return "", fmt.Errorf("unknown transport protocol: %s", p)
-	}
-
-	for _, la := range s.Peer.Host.Network().ListenAddresses() {
-		if p, err := la.ValueForProtocol(proto); err == nil {
-			port = p
-			break
-		}
-	}
-
-	if port == "" {
-		return "", fmt.Errorf("port not found: %s", port)
-	}
-
-	return port, nil
-}
-
 func (s *SWN) ID() peer.ID {
 	return s.Peer.Host.ID()
-}
-
-func (s *SWN) GetPeerMAddrs() string {
-	maddrs := []string{}
-	for _, addr := range s.Peer.Host.Addrs() {
-		maddrs = append(maddrs, addr.String())
-	}
-	return strings.Join(maddrs, ",")
 }

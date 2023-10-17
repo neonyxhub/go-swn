@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	SWNBus_LocalDistributeEvents_FullMethodName = "/bus_api.pb.SWNBus/LocalDistributeEvents"
 	SWNBus_LocalFunnelEvents_FullMethodName     = "/bus_api.pb.SWNBus/LocalFunnelEvents"
-	SWNBus_GetPeerId_FullMethodName             = "/bus_api.pb.SWNBus/GetPeerId"
+	SWNBus_GetPeerInfo_FullMethodName           = "/bus_api.pb.SWNBus/GetPeerInfo"
 )
 
 // SWNBusClient is the client API for SWNBus service.
@@ -31,9 +31,10 @@ const (
 type SWNBusClient interface {
 	// swn here is the server, which listens to events from cwn
 	LocalDistributeEvents(ctx context.Context, opts ...grpc.CallOption) (SWNBus_LocalDistributeEventsClient, error)
-	// swn here is the server, which gives events to CWN
+	// swn here is the server, which gives events to cwn
 	LocalFunnelEvents(ctx context.Context, in *ListenEventsRequest, opts ...grpc.CallOption) (SWNBus_LocalFunnelEventsClient, error)
-	GetPeerId(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Peer, error)
+	// returns local swn's peer information
+	GetPeerInfo(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Peer, error)
 }
 
 type sWNBusClient struct {
@@ -110,9 +111,9 @@ func (x *sWNBusLocalFunnelEventsClient) Recv() (*Event, error) {
 	return m, nil
 }
 
-func (c *sWNBusClient) GetPeerId(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Peer, error) {
+func (c *sWNBusClient) GetPeerInfo(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Peer, error) {
 	out := new(Peer)
-	err := c.cc.Invoke(ctx, SWNBus_GetPeerId_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, SWNBus_GetPeerInfo_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +126,10 @@ func (c *sWNBusClient) GetPeerId(ctx context.Context, in *empty.Empty, opts ...g
 type SWNBusServer interface {
 	// swn here is the server, which listens to events from cwn
 	LocalDistributeEvents(SWNBus_LocalDistributeEventsServer) error
-	// swn here is the server, which gives events to CWN
+	// swn here is the server, which gives events to cwn
 	LocalFunnelEvents(*ListenEventsRequest, SWNBus_LocalFunnelEventsServer) error
-	GetPeerId(context.Context, *empty.Empty) (*Peer, error)
+	// returns local swn's peer information
+	GetPeerInfo(context.Context, *empty.Empty) (*Peer, error)
 	mustEmbedUnimplementedSWNBusServer()
 }
 
@@ -141,8 +143,8 @@ func (UnimplementedSWNBusServer) LocalDistributeEvents(SWNBus_LocalDistributeEve
 func (UnimplementedSWNBusServer) LocalFunnelEvents(*ListenEventsRequest, SWNBus_LocalFunnelEventsServer) error {
 	return status.Errorf(codes.Unimplemented, "method LocalFunnelEvents not implemented")
 }
-func (UnimplementedSWNBusServer) GetPeerId(context.Context, *empty.Empty) (*Peer, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPeerId not implemented")
+func (UnimplementedSWNBusServer) GetPeerInfo(context.Context, *empty.Empty) (*Peer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPeerInfo not implemented")
 }
 func (UnimplementedSWNBusServer) mustEmbedUnimplementedSWNBusServer() {}
 
@@ -204,20 +206,20 @@ func (x *sWNBusLocalFunnelEventsServer) Send(m *Event) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _SWNBus_GetPeerId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _SWNBus_GetPeerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(empty.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SWNBusServer).GetPeerId(ctx, in)
+		return srv.(SWNBusServer).GetPeerInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SWNBus_GetPeerId_FullMethodName,
+		FullMethod: SWNBus_GetPeerInfo_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SWNBusServer).GetPeerId(ctx, req.(*empty.Empty))
+		return srv.(SWNBusServer).GetPeerInfo(ctx, req.(*empty.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -230,8 +232,8 @@ var SWNBus_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*SWNBusServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetPeerId",
-			Handler:    _SWNBus_GetPeerId_Handler,
+			MethodName: "GetPeerInfo",
+			Handler:    _SWNBus_GetPeerInfo_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

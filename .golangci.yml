@@ -1,6 +1,4 @@
 linters-settings:
-  #lll:
-  #  line-length: 80
   gofmt:
     simplify: true
     tabs: true
@@ -8,7 +6,6 @@ linters-settings:
 
 linters:
   enable:
-    #- lll
     - gofmt
     - whitespace
 
@@ -17,7 +14,6 @@ issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        #- lll
         - gofmt
         - whitespace
 

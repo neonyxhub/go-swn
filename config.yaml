@@ -5,11 +5,12 @@ datastore:
   path: data
 p2p:
   multiaddr: "/ip4/0.0.0.0/tcp/0"
-  privkey_filepath: "/tmp/peer.key"
+  conn_limit: [100, 400]
 log:
   dev: true
   out_paths:
     - stdout
-    #- logs/out.log
+    # for an example, logs can be also written to a filepath
+    #- out.log
   err_paths:
     - stderr

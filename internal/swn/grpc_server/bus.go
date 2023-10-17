@@ -20,7 +20,6 @@ type SWNBusServer struct {
 
 // Gets events from local sender stream and passes then to EventFromLocal channel
 func (sBus *SWNBusServer) LocalDistributeEvents(stream pb.SWNBus_LocalDistributeEventsServer) error {
-	log.Printf("start listening to stream events")
 	for {
 		event, err := stream.Recv()
 		sBus.EventFromLocal <- event
@@ -30,8 +29,6 @@ func (sBus *SWNBusServer) LocalDistributeEvents(stream pb.SWNBus_LocalDistribute
 		if err != nil {
 			return err
 		}
-		log.Printf("dest: %v, method: %v, data: %v\n",
-			string(event.Dest.GetAddr()), event.Lexicon.GetUri(), string(event.GetData()))
 	}
 }
 
@@ -53,7 +50,7 @@ func (sBus *SWNBusServer) LocalFunnelEvents(in *pb.ListenEventsRequest, srv pb.S
 	}
 }
 
-func (sBus *SWNBusServer) GetPeerId(ctx context.Context, in *emptypb.Empty) (*pb.Peer, error) {
+func (sBus *SWNBusServer) GetPeerInfo(ctx context.Context, in *emptypb.Empty) (*pb.Peer, error) {
 	defer ctx.Done()
 	return &pb.Peer{Id: sBus.PeerId}, nil
 }

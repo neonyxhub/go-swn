@@ -15,8 +15,8 @@ type Config struct {
 		Path string `yaml:"path"`
 	} `yaml:"datastore"`
 	P2p struct {
-		Multiaddr   string `yaml:"multiaddr"`
-		PrivKeyPath string `yaml:"privkey_filepath"`
+		Multiaddr string `yaml:"multiaddr"`
+		ConnLimit []int  `yaml:"conn_limit"`
 	} `yaml:"p2p"`
 	Log struct {
 		Dev      bool     `yaml:"dev"`
@@ -27,13 +27,20 @@ type Config struct {
 }
 
 func ParseConfig(data *[]byte) (*Config, error) {
-	config := &Config{}
+	var config Config
+	config.P2p.ConnLimit = make([]int, 2)
+
 	err := yaml.Unmarshal(*data, config)
 	if err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	if len(config.P2p.ConnLimit) != 2 {
+		config.P2p.ConnLimit[0] = 100
+		config.P2p.ConnLimit[1] = 400
+	}
+
+	return &config, nil
 }
 
 func ReadConfigYaml(cfgPath string) (*Config, error) {

@@ -180,7 +180,7 @@ func TestConnPassEvent(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender)
 
-	sender.Peer.EstablishConn(getter.Peer.Getp2pMA())
+	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
 
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
 
@@ -210,8 +210,8 @@ func TestMultipleSenders(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender2)
 
-	sender1.Peer.EstablishConn(getter.Peer.Getp2pMA())
-	sender2.Peer.EstablishConn(getter.Peer.Getp2pMA())
+	sender1.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	sender2.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
 
 	senders := []*neo_swn.SWN{sender1, sender2}
 	done := make(chan bool, 1)

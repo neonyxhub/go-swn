@@ -7,9 +7,10 @@ import "google/protobuf/empty.proto";
 service SWNBus {
 	// swn here is the server, which listens to events from cwn
 	rpc LocalDistributeEvents(stream Event) returns (StreamEventsResponse) {};
-	// swn here is the server, which gives events to CWN
+	// swn here is the server, which gives events to cwn
 	rpc LocalFunnelEvents(ListenEventsRequest) returns (stream Event) {};
-	rpc GetPeerId(google.protobuf.Empty) returns (Peer) {};
+	// returns local swn's peer information
+	rpc GetPeerInfo(google.protobuf.Empty) returns (Peer) {};
 }
 
 message Destination {
@@ -34,8 +35,3 @@ message Peer {
 
 message ListenEventsRequest {}
 message StreamEventsResponse {}
-
-
-message JWT {
-	bytes AccountID = 1;
-}
