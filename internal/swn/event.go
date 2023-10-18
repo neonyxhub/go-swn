@@ -78,13 +78,22 @@ func (s *SWN) StopEventListening() {
 	s.CtxCancel()
 }
 
-func (s *SWN) CheckAuth(conn network.Conn) error {
-	// check in {connID: deviceID}
-	if s.IsAuthorized(conn) {
+// Check if outgoing destination swn has authentication with current swn,
+// otherwise perform full challenge-response auth
+func (s *SWN) CheckAuth(conn network.Conn, destMa string) error {
+	if s.IsAuthenticated(conn) {
+		s.Log.Sugar().Infof("conn %v is already authenticated")
 		return nil
 	}
 
-	//s.AuthOut()
+	ack, err := s.AuthOut(destMa)
+	if err != nil {
+		return err
+	}
+
+	if !ack {
+		return ErrNotAuthorized
+	}
 
 	return nil
 }
@@ -119,14 +128,18 @@ func (s *SWN) PassEventToNetwork(evt *pb.Event) error {
 		return ErrNoExistingConnection
 	}
 
-	for _, conn := range conns {
-		if err := s.CheckAuth(conn); err != nil {
-			return err
-		}
+	if len(conns) > 1 {
+		// TODO: create ConnectionManager to handle mux. streams under p2p connection
+		s.Log.Sugar().Errorf("should be only 1 conn. and many streams, have %v conns", len(conns))
+	}
+	conn := conns[0]
 
-		if err := s.ConnPassEvent(ctx, evt, conn); err != nil {
-			return err
-		}
+	if err := s.CheckAuth(conn, destMa.String()); err != nil {
+		return err
+	}
+
+	if err := s.ConnPassEvent(ctx, evt, conn); err != nil {
+		return err
 	}
 
 	return nil
@@ -154,9 +167,10 @@ func (s *SWN) ConnPassEvent(ctx context.Context, evt *pb.Event, conn network.Con
 		return err
 	}
 
+	// try to pass event to existing streams with HID_EVENTBUS
 	for _, stream := range conn.GetStreams() {
 		if stream.Protocol() == HID_EVENTBUS {
-			s.Log.Info("ConnPassEvent HID_EVENTBUS")
+			s.Log.Sugar().Infof("HID_EVENTBUS: writing to existing stream %v of conn %v", stream.ID(), conn.ID())
 			n, err := stream.Write(rawEvt)
 			if n != len(rawEvt) {
 				return ErrIncompleteStreamWrite
@@ -166,16 +180,16 @@ func (s *SWN) ConnPassEvent(ctx context.Context, evt *pb.Event, conn network.Con
 		}
 	}
 
-	// creates a new stream and pass event to HID_EVENTBUS
-	//stream, err := s.Peer.StreamOverConn(ctx, conn, HID_EVENTBUS)
-	//if err != nil {
-	//	return err
-	//}
+	// otherwise creates a new stream and pass event to HID_EVENTBUS
+	stream, err := s.Peer.StreamOverConn(ctx, conn, HID_EVENTBUS)
+	if err != nil {
+		return err
+	}
 
-	//n, err := stream.Write(rawEvt)
-	//if n != len(rawEvt) {
-	//	return ErrIncompleteStreamWrite
-	//}
+	n, err := stream.Write(rawEvt)
+	if n != len(rawEvt) {
+		return ErrIncompleteStreamWrite
+	}
 
 	return nil
 }

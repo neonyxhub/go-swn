@@ -157,13 +157,13 @@ func (p *Peer) EstablishConn(ctx context.Context, maddr multiaddr.Multiaddr) err
 }
 
 func (p *Peer) StreamOverConn(ctx context.Context, conn network.Conn, protos ...protocol.ID) (network.Stream, error) {
+	// creates a new connection
 	s, err := conn.NewStream(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	selected, err := mstream.SelectOneOf(protos, s)
-
 	if err != nil {
 		s.Reset()
 		return nil, ErrNegotioateProtocol(err)

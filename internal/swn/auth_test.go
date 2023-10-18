@@ -1,9 +1,13 @@
 package swn_test
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"sync"
 	"testing"
 
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/stretchr/testify/require"
 	"go.neonyx.io/go-swn/internal/swn"
 )
@@ -29,7 +33,7 @@ func TestIsAuthorized(t *testing.T) {
 	conns := getter.Peer.Host.Network().Conns()
 	require.Equal(t, len(conns), 1)
 
-	require.False(t, sender.IsAuthorized(conns[0]))
+	require.False(t, sender.IsAuthenticated(conns[0]))
 }
 
 func TestAuthOut(t *testing.T) {
@@ -41,9 +45,9 @@ func TestAuthOut(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ack)
 
-	conns := getter.Peer.Host.Network().Conns()
+	conns := sender.Peer.Host.Network().Conns()
 	require.Equal(t, len(conns), 1)
-	require.True(t, sender.IsAuthorized(conns[0]))
+	require.True(t, sender.IsAuthenticated(conns[0]))
 
 	// already authenticated
 	ack, err = sender.AuthOut(getter.Peer.Getp2pMA().String())
@@ -54,4 +58,37 @@ func TestAuthOut(t *testing.T) {
 	nack, err := sender.AuthOut("/abc/")
 	require.Error(t, err)
 	require.False(t, nack)
+}
+
+func TestAuthIn(t *testing.T) {
+	getter, sender := createGetterSender(t)
+	defer closeSWN(t, getter)
+	defer closeSWN(t, sender)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	stream, err := sender.Peer.Host.NewStream(context.Background(), getter.ID(), swn.HID_AUTH)
+	require.NoError(t, err)
+
+	go func(wg *sync.WaitGroup, stream network.Stream) {
+		defer wg.Done()
+		err := getter.AuthIn(stream)
+		require.Error(t, err)
+	}(&wg, stream)
+
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+
+	sender.Log.Info("reading a destination device public key")
+	resp, err := swn.ReadB64(rw)
+	require.NoError(t, err)
+	require.True(t, bytes.Equal(getter.Device.GetPubKeyRaw(), resp))
+
+	err = swn.WriteB64(rw, []byte{})
+	// TODO: improve this test upon stream reset
+	if err != nil {
+		require.Error(t, err)
+	}
+
+	wg.Wait()
 }

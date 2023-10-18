@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
@@ -139,23 +138,16 @@ func TestPassEventToNetwork(t *testing.T) {
 	ma := getter.Peer.Getp2pMA()
 	evt.Dest.Addr = ma.Bytes()
 
-	for _, p := range getter.Peer.Host.Mux().Protocols() {
-		log.Printf("protocol: %v\b", p)
-	}
+	getter.GrpcServer.Bus.HasListener = true
 
 	err = sender.PassEventToNetwork(evt)
 	require.NoError(t, err)
 
+	log.Println("waiting for event come to EventToLocal")
 	evt2 := <-getter.GrpcServer.Bus.EventToLocal
 	require.True(t, proto.Equal(evt, evt2))
 
 	// invalid NewMultiaddrBytes()
-	log.Println("checking NewMultiaddrBytes")
-
-	maStr := "/ip4/0.0.0.0/tcp/65002/p2p/12D3KooWMGh4n7ra4WiQwCFrr3wCnreYV5KFePs3WBj65NHd4jfo"
-	ma, err = multiaddr.NewMultiaddr(maStr)
-	require.NoError(t, err)
-
 	evt, _, _ = mockEvent(1)
 	evt.Dest.Addr = []byte{}
 	err = sender.PassEventToNetwork(evt)
@@ -183,6 +175,12 @@ func TestConnPassEvent(t *testing.T) {
 	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
 
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
+	require.Equal(t, 1, len(conns))
+
+	// manually authorize
+	getter.AuthDeviceMap[sender.ID().String()] = sender.Device.Id
+
+	sender.GrpcServer.Bus.HasListener = true
 
 	evt, _, _ := mockEvent(1)
 
@@ -212,6 +210,12 @@ func TestMultipleSenders(t *testing.T) {
 
 	sender1.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
 	sender2.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+
+	getter.GrpcServer.Bus.HasListener = true
+
+	// manually authorize
+	getter.AuthDeviceMap[sender1.ID().String()] = sender1.Device.Id
+	getter.AuthDeviceMap[sender2.ID().String()] = sender2.Device.Id
 
 	senders := []*neo_swn.SWN{sender1, sender2}
 	done := make(chan bool, 1)

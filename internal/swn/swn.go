@@ -25,16 +25,33 @@ type Handler struct {
 
 // Main structure of module with necessary pointers to components
 type SWN struct {
-	Cfg        *config.Config
-	Ds         drivers.DataStore
-	DsCfg      *drivers.DataStoreCfg
+	// swn configuration for gRPC, p2p, logger etc.
+	Cfg *config.Config
+
+	// local datastore interface and configuration
+	Ds    drivers.DataStore
+	DsCfg *drivers.DataStoreCfg
+
+	// gRPC server with sBus for routing i/o events
 	GrpcServer *grpc_server.GrpcServer
-	Peer       *p2p.Peer
-	Device     *Device
-	Handlers   []Handler
-	Log        logger.Logger
-	Ctx        context.Context
-	CtxCancel  context.CancelFunc
+
+	// peer structure with p2p logic
+	Peer *p2p.Peer
+
+	// local swn "hardware" information like deviceId
+	Device *Device
+
+	// p2p remote peer Id: remote peer's DeviceId
+	AuthDeviceMap map[string][]byte
+
+	// slice of p2p stream handlers
+	Handlers []Handler
+
+	Log logger.Logger
+
+	// parent context of swn state with cancel function
+	Ctx       context.Context
+	CtxCancel context.CancelFunc
 }
 
 // New creates an instance of SWN with libp2p peer, datastore, gRPC server, P2PBus
@@ -42,9 +59,10 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	swn := SWN{
-		Cfg:       cfg,
-		Ctx:       ctx,
-		CtxCancel: cancel,
+		Cfg:           cfg,
+		Ctx:           ctx,
+		CtxCancel:     cancel,
+		AuthDeviceMap: make(map[string][]byte),
 	}
 
 	logCfg := &logger.LoggerCfg{
