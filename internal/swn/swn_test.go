@@ -22,12 +22,18 @@ func newSWN(id int) (*neo_swn.SWN, error) {
 
 	opts := []libp2p.Option{}
 
-	swn, err := neo_swn.New(&cfg, opts...)
-	if err != nil {
+	if err := os.RemoveAll("mock"); err != nil {
 		return nil, err
 	}
 
-	swn.Run()
+	swn, err := neo_swn.New(&cfg, opts...)
+	if err != nil {
+		panic(err)
+	}
+
+	if err = swn.Run(); err != nil {
+		panic(err)
+	}
 
 	return swn, nil
 }

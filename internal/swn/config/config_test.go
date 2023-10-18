@@ -15,6 +15,7 @@ datastore:
   path: mockDatastore
 p2p:
   multiaddr: "/ip4/0.0.0.0/tcp/0"
+  conn_limit: [100, 400]
 log:
   dev: true
 `

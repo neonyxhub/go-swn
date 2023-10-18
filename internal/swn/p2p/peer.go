@@ -64,13 +64,17 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*Peer, error) {
 	// transport data between peers is encrypted with TLS
 	opts = append(opts, libp2p.Security(libp2ptls.ID, libp2ptls.New))
 
-	connMgr, err := connmgr.NewConnManager(
-		cfg.P2p.ConnLimit[0], // Lowwater
-		cfg.P2p.ConnLimit[1], // HighWater,
-		connmgr.WithGracePeriod(1*time.Minute),
-	)
-
-	opts = append(opts, libp2p.ConnectionManager(connMgr))
+	if len(cfg.P2p.ConnLimit) >= 2 {
+		connMgr, err := connmgr.NewConnManager(
+			cfg.P2p.ConnLimit[0], // Lowwater
+			cfg.P2p.ConnLimit[1], // HighWater,
+			connmgr.WithGracePeriod(1*time.Minute),
+		)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, libp2p.ConnectionManager(connMgr))
+	}
 
 	host, err := libp2p.New(opts...)
 	if err != nil {

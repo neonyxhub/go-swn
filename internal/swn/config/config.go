@@ -30,7 +30,7 @@ func ParseConfig(data *[]byte) (*Config, error) {
 	var config Config
 	config.P2p.ConnLimit = make([]int, 2)
 
-	err := yaml.Unmarshal(*data, config)
+	err := yaml.Unmarshal(*data, &config)
 	if err != nil {
 		return nil, err
 	}

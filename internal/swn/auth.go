@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	AUTH_ACK  = "ACK"
-	AUTH_NACK = "NACK"
+	AUTH_ACK     = "ACK"
+	AUTH_NACK    = "NACK"
+	AUTH_TIMEOUT = 10 * time.Second
 )
 
 var (
@@ -28,7 +29,6 @@ var (
 
 	// connId: deviceId
 	AuthDeviceMap = make(map[string][]byte)
-	AUTH_TIMEOUT  = 10 * time.Second
 )
 
 func (s *SWN) IsAuthorized(connId string) bool {
@@ -37,14 +37,6 @@ func (s *SWN) IsAuthorized(connId string) bool {
 }
 
 func writeB64(rw *bufio.ReadWriter, req []byte) error {
-	//var buf bytes.Buffer
-
-	//encoder := base64.NewEncoder(base64.StdEncoding, &buf)
-	//if _, err := encoder.Write(req); err != nil {
-	//	return err
-	//}
-	//encoder.Close()
-
 	encoded := base64.StdEncoding.EncodeToString(req)
 
 	if _, err := rw.WriteString(encoded + "\n"); err != nil {
@@ -98,18 +90,20 @@ func readB64(rw *bufio.ReadWriter) ([]byte, error) {
 
 // Perform incoming auth from AuthHandler
 func (s *SWN) AuthIn(stream network.Stream) error {
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+
 	if s.IsAuthorized(stream.Conn().ID()) {
+		if err := writeB64(rw, []byte(AUTH_ACK)); err != nil {
+			return err
+		}
 		return nil
 	}
-
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
 	// 1. receives DeviceAuthRequest from sender
 	reqRaw, err := readB64(rw)
 	if err != nil {
 		return err
 	}
-	s.Log.Sugar().Infof("received %v bytes, %s", len(reqRaw), sha256.Sum256(reqRaw))
 	req := &pb.DeviceAuthRequest{}
 	if err = proto.Unmarshal(reqRaw, req); err != nil {
 		return errors.Errorf("failed to Unmarshal DeviceAuthRequest: %v", err)
@@ -149,7 +143,8 @@ func (s *SWN) AuthIn(stream network.Stream) error {
 	}
 
 	// 4. send ACK/NACK
-	if bytes.Equal(nonce[:], senderHashedNonce) {
+	localNonceHash := sha256.Sum256(nonce)
+	if bytes.Equal(localNonceHash[:], senderHashedNonce) {
 		if err = writeB64(rw, []byte(AUTH_ACK)); err != nil {
 			return err
 		}
@@ -182,7 +177,6 @@ func (s *SWN) AuthOut(destination string, destPubKey *rsa.PublicKey) (bool, erro
 		return false, err
 	}
 
-	s.Log.Sugar().Infof("Started auth process: local peer devId=%v, remote peerId=%v", s.Device.Id, destInfo.ID)
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
 	// 1. send current device Id, encrypting with destination pubkey
@@ -198,15 +192,21 @@ func (s *SWN) AuthOut(destination string, destPubKey *rsa.PublicKey) (bool, erro
 		return false, err
 	}
 
-	s.Log.Sugar().Infof("writing %v bytes, %s", len(reqRaw), sha256.Sum256(reqRaw))
+	s.Log.Info("sending local deviceId to remote swn auth")
 	if err = writeB64(rw, reqRaw); err != nil {
 		return false, err
 	}
 
 	// 2. receive challenge with encrypted nonce from outgoing swn
+	s.Log.Info("reading a challenge from remote swn")
 	challenge, err := readB64(rw)
 	if err != nil {
 		return false, err
+	}
+
+	if len(challenge) == 3 && bytes.Equal(challenge, []byte(AUTH_ACK)) {
+		s.Log.Info("already authenticated!")
+		return true, nil
 	}
 
 	nonce, err := crypto.DecryptWithPrivateKey([]byte(challenge), s.Device.PrivKey)
@@ -217,6 +217,7 @@ func (s *SWN) AuthOut(destination string, destPubKey *rsa.PublicKey) (bool, erro
 	hashedNonce := sha256.Sum256(nonce)
 
 	// 3. response to outgoing swn with hashed nonce
+	s.Log.Info("responding to remote swn's challenge")
 	if err = writeB64(rw, hashedNonce[:]); err != nil {
 		return false, err
 	}
@@ -228,8 +229,10 @@ func (s *SWN) AuthOut(destination string, destPubKey *rsa.PublicKey) (bool, erro
 	}
 
 	if string(ack) == AUTH_ACK {
+		s.Log.Info("received ACK on AuthOut")
 		return true, nil
 	} else {
+		s.Log.Info("received NACK on AuthOut")
 		return false, ErrNotAuthorized
 	}
 }

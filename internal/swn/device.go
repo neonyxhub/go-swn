@@ -22,6 +22,26 @@ func (d *Device) GetPubKeyRaw() []byte {
 	return x509.MarshalPKCS1PublicKey(d.PubKey)
 }
 
+func (d *Device) ParsePrivKeyRaw(der []byte) error {
+	prvKey, err := x509.ParsePKCS1PrivateKey(der)
+	if err != nil {
+		return err
+	}
+	d.PrivKey = prvKey
+
+	return nil
+}
+
+func (d *Device) ParsePubKeyRaw(der []byte) error {
+	pubKey, err := x509.ParsePKCS1PublicKey(der)
+	if err != nil {
+		return err
+	}
+	d.PubKey = pubKey
+
+	return nil
+}
+
 func (d *Device) GenKeyPair() error {
 	prvKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -35,11 +55,7 @@ func (d *Device) GenKeyPair() error {
 }
 
 func (d *Device) GenDeviceId() error {
-	pubKeyRaw, err := x509.MarshalPKIXPublicKey(d.PubKey)
-	if err != nil {
-		return err
-	}
-
+	pubKeyRaw := d.GetPubKeyRaw()
 	hash := sha256.New()
 	if _, err := hash.Write(pubKeyRaw); err != nil {
 		return err

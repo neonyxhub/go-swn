@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	_ "github.com/syndtr/goleveldb/leveldb"
 	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
 
 	neo_ds "go.neonyx.io/go-swn/internal/ds"
@@ -78,6 +79,9 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 
 	// init device
 	swn.Device = &Device{}
+	if err = swn.CheckDeviceId(); err != nil {
+		return nil, err
+	}
 
 	swn.GrpcServer = grpc_server.New()
 	swn.GrpcServer.Log = log
@@ -90,22 +94,6 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 
 // Serves gRPC server, set p2p network stream handlers and starts event listening
 func (s *SWN) Run() error {
-	if err := s.Device.GenKeyPair(); err != nil {
-		return err
-	}
-	//deviceAuth, err := s.GetDeviceAuth()
-	//if err != nil {
-	//	return err
-	//}
-	//if deviceAuth.PrivKey == nil {
-	//	if err := s.Device.GenKeyPair(); err != nil {
-	//		return err
-	//	}
-	//	if err = s.SaveDeviceAuth(); err != nil {
-	//		return err
-	//	}
-	//}
-
 	s.Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
 	if err := s.GrpcServer.Serve(s.Cfg.GrpcServer.Addr); err != nil {
 		s.Ds.Close()

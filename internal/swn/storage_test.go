@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	_ "github.com/syndtr/goleveldb/leveldb"
 )
 
 func TestGetAuthInfo(t *testing.T) {
@@ -11,9 +13,9 @@ func TestGetAuthInfo(t *testing.T) {
 	defer closeSWN(t, swn)
 	require.NoError(t, err)
 
-	deviceAuth, err := swn.GetDeviceAuth()
+	err = swn.GetDeviceAuth()
 	require.NoError(t, err)
-	require.NotEmpty(t, deviceAuth.PrivKey)
+	require.NotEmpty(t, swn.Device.PrivKey)
 }
 
 func TestSaveAuthInfo(t *testing.T) {
@@ -24,7 +26,7 @@ func TestSaveAuthInfo(t *testing.T) {
 	err = swn.SaveDeviceAuth()
 	require.NoError(t, err)
 
-	deviceAuth, err := swn.GetDeviceAuth()
+	err = swn.GetDeviceAuth()
 	require.NoError(t, err)
-	require.NotEmpty(t, deviceAuth.PrivKey)
+	require.NotEmpty(t, swn.Device.PrivKey)
 }

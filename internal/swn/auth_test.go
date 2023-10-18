@@ -2,8 +2,6 @@ package swn_test
 
 import (
 	"context"
-	"crypto/sha256"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,10 +37,28 @@ func TestAuthOut(t *testing.T) {
 	defer closeSWN(t, getter)
 	defer closeSWN(t, sender)
 
-	log.Printf("getter priv key hash: %s", sha256.Sum256(getter.Device.GetPrivKeyRaw()))
-	log.Printf("getter pub key hash: %s", sha256.Sum256(getter.Device.GetPubKeyRaw()))
-
 	ack, err := sender.AuthOut(getter.Peer.Getp2pMA().String(), getter.Device.PubKey)
 	require.NoError(t, err)
 	require.True(t, ack)
+
+	conns := getter.Peer.Host.Network().Conns()
+	require.Equal(t, len(conns), 1)
+	require.True(t, sender.IsAuthorized(conns[0].ID()))
+
+	// already authenticated
+	ack, err = sender.AuthOut(getter.Peer.Getp2pMA().String(), getter.Device.PubKey)
+	require.NoError(t, err)
+	require.True(t, ack)
+
+	// new network connection
+	for _, conn := range getter.Peer.Host.Network().Conns() {
+		conn.Close()
+	}
+	err = sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	require.NoError(t, err)
+
+	// wrong pubkey
+	nack, err := sender.AuthOut(getter.Peer.Getp2pMA().String(), sender.Device.PubKey)
+	require.Error(t, err)
+	require.False(t, nack)
 }
