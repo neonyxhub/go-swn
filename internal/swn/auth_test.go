@@ -29,7 +29,7 @@ func TestIsAuthorized(t *testing.T) {
 	conns := getter.Peer.Host.Network().Conns()
 	require.Equal(t, len(conns), 1)
 
-	require.False(t, sender.IsAuthorized(conns[0].ID()))
+	require.False(t, sender.IsAuthorized(conns[0]))
 }
 
 func TestAuthOut(t *testing.T) {
@@ -37,28 +37,21 @@ func TestAuthOut(t *testing.T) {
 	defer closeSWN(t, getter)
 	defer closeSWN(t, sender)
 
-	ack, err := sender.AuthOut(getter.Peer.Getp2pMA().String(), getter.Device.PubKey)
+	ack, err := sender.AuthOut(getter.Peer.Getp2pMA().String())
 	require.NoError(t, err)
 	require.True(t, ack)
 
 	conns := getter.Peer.Host.Network().Conns()
 	require.Equal(t, len(conns), 1)
-	require.True(t, sender.IsAuthorized(conns[0].ID()))
+	require.True(t, sender.IsAuthorized(conns[0]))
 
 	// already authenticated
-	ack, err = sender.AuthOut(getter.Peer.Getp2pMA().String(), getter.Device.PubKey)
+	ack, err = sender.AuthOut(getter.Peer.Getp2pMA().String())
 	require.NoError(t, err)
 	require.True(t, ack)
 
-	// new network connection
-	for _, conn := range getter.Peer.Host.Network().Conns() {
-		conn.Close()
-	}
-	err = sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
-	require.NoError(t, err)
-
-	// wrong pubkey
-	nack, err := sender.AuthOut(getter.Peer.Getp2pMA().String(), sender.Device.PubKey)
+	// wrong destination string
+	nack, err := sender.AuthOut("/abc/")
 	require.Error(t, err)
 	require.False(t, nack)
 }

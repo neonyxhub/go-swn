@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -11,10 +12,13 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	libp2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
+	mstream "github.com/multiformats/go-multistream"
 
 	"github.com/multiformats/go-multiaddr"
 
@@ -126,6 +130,17 @@ func (p *Peer) AddRemotePeer(destination string, ttl time.Duration) (*peer.AddrI
 	return destInfo, nil
 }
 
+func (p *Peer) GetActiveConns(destPeerId peer.ID) []network.Conn {
+	active := []network.Conn{}
+	for _, conn := range p.Host.Network().ConnsToPeer(destPeerId) {
+		if !conn.IsClosed() {
+			active = append(active, conn)
+		}
+	}
+
+	return active
+}
+
 // Open connection with peer and adds its info to peerstore
 func (p *Peer) EstablishConn(ctx context.Context, maddr multiaddr.Multiaddr) error {
 	// Extract the peer ID from the multiaddr.
@@ -141,7 +156,6 @@ func (p *Peer) EstablishConn(ctx context.Context, maddr multiaddr.Multiaddr) err
 	return p.Host.Connect(ctx, *info)
 }
 
-/*
 func (p *Peer) StreamOverConn(ctx context.Context, conn network.Conn, protos ...protocol.ID) (network.Stream, error) {
 	s, err := conn.NewStream(ctx)
 	if err != nil {
@@ -163,7 +177,6 @@ func (p *Peer) StreamOverConn(ctx context.Context, conn network.Conn, protos ...
 
 	return s, nil
 }
-*/
 
 // Returns MultiAddr with non-localhost ipv4 and with /p2p/<peerId> prefix
 func (p *Peer) Getp2pMA() multiaddr.Multiaddr {

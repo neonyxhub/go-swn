@@ -78,10 +78,13 @@ func (s *SWN) StopEventListening() {
 	s.CtxCancel()
 }
 
-func (s *SWN) CheckAuth(conns []network.Conn) error {
+func (s *SWN) CheckAuth(conn network.Conn) error {
 	// check in {connID: deviceID}
-	// if not connID in map, est AuthRequest{mobileDeviceID}
-	// upon response proceed with  s.ConnPassEvent(ctx, evt, conns[0])
+	if s.IsAuthorized(conn) {
+		return nil
+	}
+
+	//s.AuthOut()
 
 	return nil
 }
@@ -96,34 +99,37 @@ func (s *SWN) PassEventToNetwork(evt *pb.Event) error {
 		return ErrEmptyEvent
 	}
 
-	ma, err := multiaddr.NewMultiaddrBytes(evt.Dest.GetAddr())
+	destMa, err := multiaddr.NewMultiaddrBytes(evt.Dest.GetAddr())
 	if err != nil {
 		return err
 	}
 
-	info, err := peer.AddrInfoFromP2pAddr(ma)
+	destInfo, err := peer.AddrInfoFromP2pAddr(destMa)
 	if err != nil {
 		return err
 	}
 
-	err = s.Peer.EstablishConn(ctx, ma)
+	err = s.Peer.EstablishConn(ctx, destMa)
 	if err != nil {
 		return err
 	}
 
-	conns := s.Peer.Host.Network().ConnsToPeer(info.ID)
-	if len(conns) != 0 {
-		err = s.CheckAuth(conns)
-		if err != nil {
+	conns := s.Peer.GetActiveConns(destInfo.ID)
+	if len(conns) == 0 {
+		return ErrNoExistingConnection
+	}
+
+	for _, conn := range conns {
+		if err := s.CheckAuth(conn); err != nil {
 			return err
 		}
 
-		s.Log.Info("PassEventToNetwork")
-
-		return s.ConnPassEvent(ctx, evt, conns[0])
+		if err := s.ConnPassEvent(ctx, evt, conn); err != nil {
+			return err
+		}
 	}
 
-	return ErrNoExistingConnection
+	return nil
 }
 
 // Packs event and passes it over an existing stream
@@ -143,7 +149,6 @@ func StreamPassEvent(ctx context.Context, evt *pb.Event, s network.Stream) error
 
 // Packs event, opens a stream over an existing connection and writes packed event
 func (s *SWN) ConnPassEvent(ctx context.Context, evt *pb.Event, conn network.Conn) error {
-	s.Log.Info("ConnPassEvent")
 	rawEvt, err := PackEvent(evt)
 	if err != nil {
 		return err
@@ -161,18 +166,16 @@ func (s *SWN) ConnPassEvent(ctx context.Context, evt *pb.Event, conn network.Con
 		}
 	}
 
-	/*
-		// creates a new stream and pass event to HID_EVENTBUS
-		stream, err := s.Peer.StreamOverConn(ctx, conn, HID_EVENTBUS)
-		if err != nil {
-			return err
-		}
+	// creates a new stream and pass event to HID_EVENTBUS
+	//stream, err := s.Peer.StreamOverConn(ctx, conn, HID_EVENTBUS)
+	//if err != nil {
+	//	return err
+	//}
 
-		n, err := stream.Write(rawEvt)
-		if n != len(rawEvt) {
-			return ErrIncompleteStreamWrite
-		}
-	*/
+	//n, err := stream.Write(rawEvt)
+	//if n != len(rawEvt) {
+	//	return ErrIncompleteStreamWrite
+	//}
 
 	return nil
 }

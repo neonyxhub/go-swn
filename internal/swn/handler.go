@@ -43,7 +43,7 @@ func (s *SWN) AuthHandler(stream network.Stream) {
 func (s *SWN) EventHandler(stream network.Stream) {
 	s.Log.Sugar().Infof("got event stream: connId=%v", stream.Conn().ID())
 
-	if !s.IsAuthorized(stream.Conn().ID()) {
+	if !s.IsAuthorized(stream.Conn()) {
 		s.Log.Sugar().Warnf("closing stream for unauthorized connection: %s", stream.Conn().ID())
 		stream.Conn().Close()
 		return

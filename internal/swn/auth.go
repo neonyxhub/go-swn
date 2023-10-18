@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
@@ -31,8 +30,14 @@ var (
 	AuthDeviceMap = make(map[string][]byte)
 )
 
-func (s *SWN) IsAuthorized(connId string) bool {
-	_, ok := AuthDeviceMap[connId]
+func (s *SWN) IsAuthorized(conn network.Conn) bool {
+	if conn.IsClosed() {
+		s.Log.Sugar().Infof("stream %v is closed, not authorized\n", conn.ID())
+		delete(AuthDeviceMap, conn.ID())
+		return false
+	}
+
+	_, ok := AuthDeviceMap[conn.ID()]
 	return ok
 }
 
@@ -92,11 +97,16 @@ func readB64(rw *bufio.ReadWriter) ([]byte, error) {
 func (s *SWN) AuthIn(stream network.Stream) error {
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
-	if s.IsAuthorized(stream.Conn().ID()) {
+	if s.IsAuthorized(stream.Conn()) {
 		if err := writeB64(rw, []byte(AUTH_ACK)); err != nil {
 			return err
 		}
 		return nil
+	}
+
+	// 0. sends local device public key to sender
+	if err := writeB64(rw, s.Device.GetPubKeyRaw()); err != nil {
+		return err
 	}
 
 	// 1. receives DeviceAuthRequest from sender
@@ -163,7 +173,7 @@ func (s *SWN) AuthIn(stream network.Stream) error {
 }
 
 // Perform outgoing swn authentification with given multiaddress destination string
-func (s *SWN) AuthOut(destination string, destPubKey *rsa.PublicKey) (bool, error) {
+func (s *SWN) AuthOut(destination string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), AUTH_TIMEOUT)
 	defer cancel()
 
@@ -178,6 +188,23 @@ func (s *SWN) AuthOut(destination string, destPubKey *rsa.PublicKey) (bool, erro
 	}
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+
+	// 0. receive from destination its device public key or ACK if authenticated
+	s.Log.Info("reading a destination device public key")
+	resp, err := readB64(rw)
+	if err != nil {
+		return false, err
+	}
+
+	if len(resp) == 3 && bytes.Equal(resp, []byte(AUTH_ACK)) {
+		s.Log.Info("already authenticated!")
+		return true, nil
+	}
+
+	destPubKey, err := x509.ParsePKCS1PublicKey(resp)
+	if err != nil {
+		return false, err
+	}
 
 	// 1. send current device Id, encrypting with destination pubkey
 	encDevId, err := crypto.EncryptWithPublicKey(s.Device.Id, destPubKey)
@@ -202,11 +229,6 @@ func (s *SWN) AuthOut(destination string, destPubKey *rsa.PublicKey) (bool, erro
 	challenge, err := readB64(rw)
 	if err != nil {
 		return false, err
-	}
-
-	if len(challenge) == 3 && bytes.Equal(challenge, []byte(AUTH_ACK)) {
-		s.Log.Info("already authenticated!")
-		return true, nil
 	}
 
 	nonce, err := crypto.DecryptWithPrivateKey([]byte(challenge), s.Device.PrivKey)

@@ -65,6 +65,8 @@ func (s *SWN) CheckDeviceId() error {
 		if err = s.SaveDeviceAuth(); err != nil {
 			return err
 		}
+
+		return nil
 	} else if err != nil {
 		return err
 	}
