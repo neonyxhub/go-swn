@@ -5,7 +5,7 @@ datastore:
   path: data/swn2
 p2p:
   multiaddr: "/ip4/0.0.0.0/tcp/65002"
-  privkey_filepath: "/tmp/peer1.key"
+  conn_limit: [100, 400]
 log:
   dev: true
   out_paths:

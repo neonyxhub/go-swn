@@ -12,5 +12,8 @@ COPY . ./
 
 RUN go build -o /app "$GO_FLAGS" ./...
 
+VOLUME /app/data
+
 EXPOSE 8080
+EXPOSE 65000
 ENTRYPOINT ["/app/swn"]

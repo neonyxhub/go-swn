@@ -33,7 +33,7 @@ dev:
 	docker build -t $(PROJECT):$(DEV_VERSION) .
 
 	@echo	"[*] Running Docker container: $(PROJECT)..."
-	docker run --rm --name $(PROJECT) $(ARGS) $(PROJECT):$(DEV_VERSION)
+	docker run --rm --name $(PROJECT) -v $(PWD)/data:/app/data $(ARGS) $(PROJECT):$(DEV_VERSION)
 
 build-release:
 	@echo	"[*] Building Docker image for release..."

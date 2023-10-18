@@ -1,5 +1,9 @@
 version: "3.5"
 
+networks:
+  e2e:
+    name: e2e
+
 services:
   cwn1:
     build:
@@ -12,6 +16,8 @@ services:
     depends_on:
       - swn1
       - swn2
+    networks:
+      - e2e
 
   swn1:
     build:
@@ -24,6 +30,8 @@ services:
       - ./testdata:/app/test/e2e/testdata
     container_name: swn1
     command: -config test/e2e/testdata/config_swn1.yaml -debug=true
+    networks:
+      - e2e
 
   swn2:
     build:
@@ -36,3 +44,6 @@ services:
       - ./testdata:/app/test/e2e/testdata
     container_name: swn2
     command: -config test/e2e/testdata/config_swn2.yaml -debug=true
+    networks:
+      - e2e
+

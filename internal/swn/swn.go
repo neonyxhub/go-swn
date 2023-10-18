@@ -56,15 +56,6 @@ type SWN struct {
 
 // New creates an instance of SWN with libp2p peer, datastore, gRPC server, P2PBus
 func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	swn := SWN{
-		Cfg:           cfg,
-		Ctx:           ctx,
-		CtxCancel:     cancel,
-		AuthDeviceMap: make(map[string][]byte),
-	}
-
 	logCfg := &logger.LoggerCfg{
 		Dev:      cfg.Log.Dev,
 		OutPaths: cfg.Log.OutPaths,
@@ -74,6 +65,17 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Info("creating a new SWN")
+	ctx, cancel := context.WithCancel(context.Background())
+
+	swn := SWN{
+		Cfg:           cfg,
+		Ctx:           ctx,
+		CtxCancel:     cancel,
+		AuthDeviceMap: make(map[string][]byte),
+	}
+
 	swn.Log = log
 
 	// new libp2p peer
