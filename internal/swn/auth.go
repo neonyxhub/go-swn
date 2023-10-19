@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	AUTH_ACK     = "ACK"
-	AUTH_NACK    = "NACK"
+	AUTH_OK      = "OK"
+	AUTH_NOK     = "NOK"
 	AUTH_TIMEOUT = 10 * time.Second
 )
 
@@ -41,16 +41,16 @@ func (s *SWN) IsAuthenticated(conn network.Conn) bool {
 func (s *SWN) AuthIn(stream network.Stream) error {
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
+	// 0. sends ACK/NACK if authenticated
 	if s.IsAuthenticated(stream.Conn()) {
-		if err := WriteB64(rw, []byte(AUTH_ACK)); err != nil {
+		if err := WriteB64(rw, []byte(AUTH_OK)); err != nil {
 			return err
 		}
 		return nil
-	}
-
-	// 0. sends local device public key to sender
-	if err := WriteB64(rw, s.Device.GetPubKeyRaw()); err != nil {
-		return err
+	} else {
+		if err := WriteB64(rw, []byte(AUTH_NOK)); err != nil {
+			return err
+		}
 	}
 
 	// 1. receives DeviceAuthRequest from sender
@@ -64,13 +64,8 @@ func (s *SWN) AuthIn(stream network.Stream) error {
 		return errors.Errorf("failed to Unmarshal DeviceAuthRequest: %v", err)
 	}
 
-	data, err := crypto.DecryptWithPrivateKey(req.Data, s.Device.PrivKey)
-	if err != nil || len(data) == 0 {
-		return errors.Errorf("failed to DecryptWithPrivateKey: %v", err)
-	}
-
 	// will be stored if challenge-response is ACK
-	senderDeviceId := data
+	senderDeviceId := req.Data
 
 	// challenge
 	senderDevPubKey, err := x509.ParsePKCS1PublicKey(req.SenderDevPubKey)
@@ -100,7 +95,7 @@ func (s *SWN) AuthIn(stream network.Stream) error {
 	// 4. send ACK/NACK
 	localNonceHash := sha256.Sum256(nonce)
 	if bytes.Equal(localNonceHash[:], senderHashedNonce) {
-		if err = WriteB64(rw, []byte(AUTH_ACK)); err != nil {
+		if err = WriteB64(rw, []byte(AUTH_OK)); err != nil {
 			return err
 		}
 
@@ -110,7 +105,7 @@ func (s *SWN) AuthIn(stream network.Stream) error {
 
 		return nil
 	} else {
-		if err = WriteB64(rw, []byte(AUTH_NACK)); err != nil {
+		if err = WriteB64(rw, []byte(AUTH_NOK)); err != nil {
 			return err
 		}
 
@@ -135,31 +130,24 @@ func (s *SWN) AuthOut(destination string) (bool, error) {
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
-	// 0. receive from destination its device public key or ACK if authenticated
-	s.Log.Info("reading a destination device public key or ACK if authenticated")
+	// 0. receive ACK/NACK if authenticated
+	s.Log.Info("reading ACK/NACK if authenticated")
 	resp, err := ReadB64(rw)
 	if err != nil {
 		return false, err
 	}
 
-	if len(resp) == 3 && bytes.Equal(resp, []byte(AUTH_ACK)) {
-		s.Log.Info("already authenticated!")
-		return true, nil
+	if len(resp) == 2 || len(resp) == 3 {
+		if bytes.Equal(resp, []byte(AUTH_OK)) {
+			s.Log.Info("already authenticated!")
+			return true, nil
+		}
+	} else {
+		return false, errors.Errorf("irrelevant auth response: %v", resp)
 	}
 
-	destDevice := &Device{}
-	err = destDevice.ParsePubKeyRaw(resp)
-	if err != nil {
-		return false, err
-	}
-
-	// 1. send current device Id, encrypting with destination pubkey
-	encDevId, err := crypto.EncryptWithPublicKey(s.Device.Id, destDevice.PubKey)
-	if err != nil {
-		return false, err
-	}
 	reqRaw, err := proto.Marshal(&pb.DeviceAuthRequest{
-		Data:            encDevId,
+		Data:            s.Device.Id,
 		SenderDevPubKey: s.Device.GetPubKeyRaw(),
 	})
 	if err != nil {
@@ -197,15 +185,11 @@ func (s *SWN) AuthOut(destination string) (bool, error) {
 		return false, err
 	}
 
-	if string(ack) == AUTH_ACK {
-		s.Log.Info("received ACK on AuthOut")
-
-		destDevice.GenDeviceId()
-		s.AuthDeviceMap[stream.Conn().RemotePeer().String()] = destDevice.Id
-
+	if string(ack) == AUTH_OK {
+		s.Log.Info("received OK on AuthOut")
 		return true, nil
 	} else {
-		s.Log.Info("received NACK on AuthOut")
+		s.Log.Info("received NOK on AuthOut")
 		return false, ErrNotAuthorized
 	}
 }

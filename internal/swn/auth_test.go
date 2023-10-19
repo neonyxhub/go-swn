@@ -47,7 +47,6 @@ func TestAuthOut(t *testing.T) {
 
 	conns := sender.Peer.Host.Network().Conns()
 	require.Equal(t, len(conns), 1)
-	require.True(t, sender.IsAuthenticated(conns[0]))
 
 	// already authenticated
 	ack, err = sender.AuthOut(getter.Peer.Getp2pMA().String())
@@ -79,10 +78,13 @@ func TestAuthIn(t *testing.T) {
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
-	sender.Log.Info("reading a destination device public key")
+	sender.Log.Info("reading NOK because not authenticated")
 	resp, err := swn.ReadB64(rw)
-	require.NoError(t, err)
-	require.True(t, bytes.Equal(getter.Device.GetPubKeyRaw(), resp))
+	// TODO: improve this test upon stream reset
+	if err != nil {
+		require.NoError(t, err)
+	}
+	require.True(t, bytes.Equal([]byte(swn.AUTH_NOK), resp))
 
 	err = swn.WriteB64(rw, []byte{})
 	// TODO: improve this test upon stream reset
