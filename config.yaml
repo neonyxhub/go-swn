@@ -1,6 +1,6 @@
 ---
 grpc_server:
-  addr: :8080
+  addr: :50051
 datastore:
   path: data
 p2p:

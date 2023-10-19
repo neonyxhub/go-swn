@@ -1,6 +1,6 @@
 ---
 grpc_server:
-  addr: :8082
+  addr: :50053
 datastore:
   path: data/swn2
 p2p:

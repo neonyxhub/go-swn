@@ -14,6 +14,8 @@ RUN go build -o /app "$GO_FLAGS" ./...
 
 VOLUME /app/data
 
-EXPOSE 8080
+# default gRPC
+EXPOSE 50051
+# default p2p
 EXPOSE 65000
 ENTRYPOINT ["/app/swn"]

@@ -33,7 +33,7 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 - `make dev`
 	- this will build a Docker image and run it
 - You can add necessary `docker run` arguments to it as:
-    - `make dev "ARGS=-p 8080:8080"`. It will expose internal port
+    - `make dev "ARGS=-p 50051:50051"`. It will expose internal port
 
 ### Git commit
 * Git commit messages should follow the pattern `<subject>: <description>`
