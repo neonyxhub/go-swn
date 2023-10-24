@@ -16,6 +16,7 @@ service SWNBus {
 enum EventType {
 	REQ = 0;
 	RESP = 1;
+	ERR = 2;
 }
 
 enum AccountAuthType {

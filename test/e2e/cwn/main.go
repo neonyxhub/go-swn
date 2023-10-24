@@ -124,9 +124,11 @@ func main() {
 	}
 
 	event := &pb.Event{
+		Id:      1234,
+		Type:    pb.EventType_REQ,
 		Dest:    &pb.Destination{Addr: swn2MultiAddr.Bytes()},
-		Lexicon: &pb.LexiconUri{Uri: "uri-123"},
-		Data:    []byte("data-123"),
+		Lexicon: &pb.LexiconUri{Uri: "/chat/message/send"},
+		Data:    []byte{0x1},
 	}
 
 	if err := stream.Send(event); err != nil {
