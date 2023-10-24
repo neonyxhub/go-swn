@@ -59,13 +59,8 @@ func fetchPeers() {
 		break
 	}
 
-	for _, peer := range p.Peers {
-		if peer.GrpcServerPort == 8081 {
-			swn1 = peer
-		} else if peer.GrpcServerPort == 8082 {
-			swn2 = peer
-		}
-	}
+	swn1 = p.Peers[0]
+	swn2 = p.Peers[1]
 }
 
 func consumer(swnclient2 pb.SWNBusClient, done chan bool) {
