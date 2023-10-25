@@ -28,7 +28,7 @@ var (
 
 func (s *SWN) IsAuthenticated(conn network.Conn) bool {
 	if conn.IsClosed() {
-		s.Log.Sugar().Infof("connection for %v is closed, not authorized\n", conn.RemotePeer())
+		Log.Sugar().Infof("connection for %v is closed, not authorized\n", conn.RemotePeer())
 		delete(s.AuthDeviceMap, conn.RemotePeer().String())
 		return false
 	}
@@ -54,7 +54,7 @@ func (s *SWN) AuthIn(stream network.Stream) error {
 	}
 
 	// 1. receives DeviceAuthRequest from sender
-	s.Log.Info("waiting for DeviceAuthRequest")
+	Log.Info("waiting for DeviceAuthRequest")
 	reqRaw, err := ReadB64(rw)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (s *SWN) AuthIn(stream network.Stream) error {
 
 		// register current connection auth
 		s.AuthDeviceMap[stream.Conn().RemotePeer().String()] = senderDeviceId
-		s.Log.Sugar().Infof("authenticated peer with deviceId=%v", senderDeviceId)
+		Log.Sugar().Infof("authenticated peer with deviceId=%v", senderDeviceId)
 
 		return nil
 	} else {
@@ -131,7 +131,7 @@ func (s *SWN) AuthOut(destination string) (bool, error) {
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
 	// 0. receive ACK/NACK if authenticated
-	s.Log.Info("reading ACK/NACK if authenticated")
+	Log.Info("reading ACK/NACK if authenticated")
 	resp, err := ReadB64(rw)
 	if err != nil {
 		return false, err
@@ -139,7 +139,7 @@ func (s *SWN) AuthOut(destination string) (bool, error) {
 
 	if len(resp) == 2 || len(resp) == 3 {
 		if bytes.Equal(resp, []byte(AUTH_OK)) {
-			s.Log.Info("already authenticated!")
+			Log.Info("already authenticated!")
 			return true, nil
 		}
 	} else {
@@ -154,13 +154,13 @@ func (s *SWN) AuthOut(destination string) (bool, error) {
 		return false, err
 	}
 
-	s.Log.Info("sending local deviceId to remote swn auth")
+	Log.Info("sending local deviceId to remote swn auth")
 	if err = WriteB64(rw, reqRaw); err != nil {
 		return false, err
 	}
 
 	// 2. receive challenge with encrypted nonce from outgoing swn
-	s.Log.Info("reading a challenge from remote swn")
+	Log.Info("reading a challenge from remote swn")
 	challenge, err := ReadB64(rw)
 	if err != nil {
 		return false, err
@@ -174,7 +174,7 @@ func (s *SWN) AuthOut(destination string) (bool, error) {
 	hashedNonce := sha256.Sum256(nonce)
 
 	// 3. response to outgoing swn with hashed nonce
-	s.Log.Info("responding to remote swn's challenge")
+	Log.Info("responding to remote swn's challenge")
 	if err = WriteB64(rw, hashedNonce[:]); err != nil {
 		return false, err
 	}
@@ -186,10 +186,10 @@ func (s *SWN) AuthOut(destination string) (bool, error) {
 	}
 
 	if string(ack) == AUTH_OK {
-		s.Log.Info("received OK on AuthOut")
+		Log.Info("received OK on AuthOut")
 		return true, nil
 	} else {
-		s.Log.Info("received NOK on AuthOut")
+		Log.Info("received NOK on AuthOut")
 		return false, ErrNotAuthorized
 	}
 }

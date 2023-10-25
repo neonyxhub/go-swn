@@ -54,7 +54,7 @@ func (s *SWN) SaveDeviceAuth() error {
 
 func (s *SWN) CheckDeviceId() error {
 	if err := s.GetDeviceAuth(); err == leveldb.ErrNotFound {
-		s.Log.Info("generating a new device keypair")
+		Log.Info("generating a new device keypair")
 		if err := s.Device.GenKeyPair(); err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (s *SWN) CheckDeviceId() error {
 		return err
 	}
 
-	s.Log.Info("read an existing keypair")
+	Log.Info("read an existing keypair")
 	if err := s.Device.GenDeviceId(); err != nil {
 		return err
 	}

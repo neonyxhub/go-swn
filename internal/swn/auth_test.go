@@ -78,11 +78,11 @@ func TestAuthIn(t *testing.T) {
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
-	sender.Log.Info("reading NOK because not authenticated")
+	swn.Log.Info("reading NOK because not authenticated")
 	resp, err := swn.ReadB64(rw)
 	// TODO: improve this test upon stream reset
 	if err != nil {
-		require.NoError(t, err)
+		require.Error(t, err)
 	}
 	require.True(t, bytes.Equal([]byte(swn.AUTH_NOK), resp))
 

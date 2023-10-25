@@ -7,15 +7,19 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	_ "github.com/syndtr/goleveldb/leveldb"
-	leveldb_opt "github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	neo_ds "go.neonyx.io/go-swn/internal/ds"
+	"go.neonyx.io/go-swn/internal/ds"
 	"go.neonyx.io/go-swn/internal/ds/drivers"
 	"go.neonyx.io/go-swn/internal/swn/config"
 	"go.neonyx.io/go-swn/internal/swn/grpc_server"
 	"go.neonyx.io/go-swn/internal/swn/p2p"
 	"go.neonyx.io/go-swn/pkg/logger"
+)
+
+var (
+	// shared across package instantiated logger
+	Log logger.Logger
 )
 
 type Handler struct {
@@ -47,8 +51,6 @@ type SWN struct {
 	// slice of p2p stream handlers
 	Handlers []Handler
 
-	Log logger.Logger
-
 	// parent context of swn state with cancel function
 	Ctx       context.Context
 	CtxCancel context.CancelFunc
@@ -56,17 +58,19 @@ type SWN struct {
 
 // New creates an instance of SWN with libp2p peer, datastore, gRPC server, P2PBus
 func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
+	var err error
+
 	logCfg := &logger.LoggerCfg{
 		Dev:      cfg.Log.Dev,
 		OutPaths: cfg.Log.OutPaths,
 		ErrPaths: cfg.Log.ErrPaths,
 	}
-	log, err := logger.New(logCfg)
+	Log, err = logger.New(logCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Info("creating a new SWN")
+	Log.Info("creating a new SWN")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	swn := SWN{
@@ -76,22 +80,19 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		AuthDeviceMap: make(map[string][]byte),
 	}
 
-	swn.Log = log
-
 	// new libp2p peer
 	peer, err := p2p.New(cfg, opts...)
 	if err != nil {
 		return nil, err
 	}
-	peer.Log = log
 	swn.Peer = peer
 
 	// new DataStore driver
 	swn.DsCfg = &drivers.DataStoreCfg{
 		Path:    cfg.DataStore.Path,
-		Options: leveldb_opt.Options{},
+		Options: opt.Options{},
 	}
-	driver, err := neo_ds.New(swn.DsCfg)
+	driver, err := ds.New(swn.DsCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,6 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 	}
 
 	swn.GrpcServer = grpc_server.New(cfg)
-	swn.GrpcServer.Log = log
 	swn.GrpcServer.Bus.PeerId = []byte(swn.ID())
 
 	swn.ApplyDefaultHandlers()
@@ -114,19 +114,19 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 
 // Serves gRPC server, set p2p network stream handlers and starts event listening
 func (s *SWN) Run() error {
-	s.Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
+	Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
 	if err := s.GrpcServer.Serve(s.Cfg.GrpcServer.Addr); err != nil {
 		s.Ds.Close()
 		return err
 	}
 
-	s.Log.Sugar().Infof("starting %d handlers", len(s.Handlers))
+	Log.Sugar().Infof("starting %d handlers", len(s.Handlers))
 	for _, h := range s.Handlers {
 		s.Peer.Host.SetStreamHandler(protocol.ID(h.Id), h.Func)
 	}
 
 	for _, p := range s.Peer.Host.Mux().Protocols() {
-		s.Log.Sugar().Infof("protocol: %v", p)
+		Log.Sugar().Infof("protocol: %v", p)
 	}
 
 	if err := s.StartEventListening(); err != nil {
@@ -152,7 +152,7 @@ func (s *SWN) Stop() error {
 		}
 	}
 
-	s.Log.Sugar().Infof("stopping gRPC server on %s", s.Cfg.GrpcServer.Addr)
+	Log.Sugar().Infof("stopping gRPC server on %s", s.Cfg.GrpcServer.Addr)
 	if err := s.GrpcServer.Stop(); err != nil {
 		return err
 	}

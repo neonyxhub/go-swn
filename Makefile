@@ -28,12 +28,14 @@ add-commit-hook:
 	@echo	"[*] Installing git commit hook..."
 	pre-commit install -t commit-msg
 
-dev:
+build-dev:
 	@echo	"[*] Building Docker image for development..."
 	docker build -t $(PROJECT):$(DEV_VERSION) .
 
+dev:
 	@echo	"[*] Running Docker container: $(PROJECT)..."
-	docker run --rm --name $(PROJECT) -v $(PWD)/data:/app/data $(ARGS) $(PROJECT):$(DEV_VERSION)
+	docker run --rm --name $(PROJECT) -v $(PWD)/data:/app/data \
+		$(ARGS) $(PROJECT):$(DEV_VERSION) $(CMD_ARGS)
 
 build-release:
 	@echo	"[*] Building Docker image for release..."

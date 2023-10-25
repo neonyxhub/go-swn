@@ -30,27 +30,27 @@ func (s *SWN) RegisterNewHandler(h ...Handler) {
 
 // Handle incoming auth from another SWN via HID_AUTH protocol
 func (s *SWN) AuthHandler(stream network.Stream) {
-	s.Log.Sugar().Infof("got auth stream: remote peer %v", stream.Conn().RemotePeer())
+	Log.Sugar().Infof("got auth stream: remote peer %v", stream.Conn().RemotePeer())
 
 	if err := s.AuthIn(stream); err == ErrNotAuthorized {
-		s.Log.Sugar().Warnf("closing stream for failed auth stream: remote peer %v", stream.Conn().RemotePeer())
+		Log.Sugar().Warnf("closing stream for failed auth stream: remote peer %v", stream.Conn().RemotePeer())
 	} else if err != nil {
-		s.Log.Sugar().Errorln(err)
+		Log.Sugar().Errorln(err)
 		stream.Reset()
 		return
 	}
 
 	if err := stream.Close(); err != nil {
-		s.Log.Sugar().Errorln(err)
+		Log.Sugar().Errorln(err)
 	}
 }
 
 // Handle protobuf Events via HID_EVENTBUS protocol
 func (s *SWN) EventHandler(stream network.Stream) {
-	s.Log.Sugar().Infof("got event stream: remote peer %v", stream.Conn().RemotePeer())
+	Log.Sugar().Infof("got event stream: remote peer %v", stream.Conn().RemotePeer())
 
 	if !s.IsAuthenticated(stream.Conn()) {
-		s.Log.Sugar().Warnf("closing stream for unauthorized connection: %s", stream.Conn().ID())
+		Log.Sugar().Warnf("closing stream for unauthorized connection: %s", stream.Conn().ID())
 		stream.Close()
 		return
 	}
@@ -59,12 +59,12 @@ func (s *SWN) EventHandler(stream network.Stream) {
 
 	evt, err := UnpackEvent(rw)
 	if err != nil {
-		s.Log.Sugar().Errorf("failed to UnpackEvent: %v", err)
+		Log.Sugar().Errorf("failed to UnpackEvent: %v", err)
 		stream.Reset()
 		return
 	}
 
-	s.Log.Sugar().Infof("got event: %s", s.Peer.Pretty(evt))
+	Log.Sugar().Infof("got event: %s", s.Peer.Pretty(evt))
 
 	s.ProduceUpstream(evt)
 }
