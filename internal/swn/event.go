@@ -29,6 +29,7 @@ func (s *SWN) ProduceUpstream(event *pb.Event) error {
 	select {
 	case s.GrpcServer.Bus.EventUpstream <- event:
 		return nil
+	// TODO: use sync.Pool as *time.Timer to optimize timer GC
 	case <-time.After(s.Cfg.GrpcServer.BusTimer):
 		s.GrpcServer.Bus.Lock()
 		s.GrpcServer.Bus.EventUpstreamBuf = append(s.GrpcServer.Bus.EventUpstreamBuf, event)
