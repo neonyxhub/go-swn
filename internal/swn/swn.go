@@ -103,7 +103,7 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		return nil, err
 	}
 
-	swn.GrpcServer = grpc_server.New()
+	swn.GrpcServer = grpc_server.New(cfg)
 	swn.GrpcServer.Log = log
 	swn.GrpcServer.Bus.PeerId = []byte(swn.ID())
 

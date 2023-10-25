@@ -18,6 +18,8 @@ services:
       - swn2
     networks:
       - e2e
+    environment:
+      - RUN_WITH_PWN=${RUN_WITH_PWN}
 
   swn1:
     build:

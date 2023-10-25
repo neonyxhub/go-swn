@@ -66,5 +66,5 @@ func (s *SWN) EventHandler(stream network.Stream) {
 
 	s.Log.Sugar().Infof("got event: %s", s.Peer.Pretty(evt))
 
-	s.EventToLocalListener(evt)
+	s.ProduceUpstream(evt)
 }

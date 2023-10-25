@@ -63,19 +63,43 @@ func fetchPeers() {
 	swn2 = p.Peers[1]
 }
 
-func consumer(swnclient2 pb.SWNBusClient, done chan bool) {
-	responseStream, err := swnclient2.LocalFunnelEvents(context.Background(), &pb.ListenEventsRequest{})
+func consume(swnclient2 pb.SWNBusClient) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	responseStream, err := swnclient2.LocalFunnelEvents(ctx, &pb.ListenEventsRequest{})
 	if err != nil {
-		log.Fatalf("failed to call LocalFunnelEvents: %v", err)
+		log.Fatalf("pwn: failed to call LocalFunnelEvents: %v", err)
 	}
 
-	log.Println("waiting on consumer")
+	log.Println("pwn: waiting for Event from SWN2")
 	event, err := responseStream.Recv()
 	if err != nil {
-		log.Fatalf("failed to receive from stream: %v", err)
+		log.Fatalf("pwn: failed to receive from stream: %v", err)
 	}
 
-	log.Printf("received event: Dest: %v", event.Dest.GetAddr())
+	log.Printf("pwn: received event: Dest: %v", event.Dest.GetAddr())
+
+	return true
+}
+
+func consumer(swnclient2 pb.SWNBusClient, done chan bool) {
+	run_with_pwn := os.Getenv("RUN_WITH_PWN")
+	if run_with_pwn == "with_pwn" {
+		log.Println("waiting for the external pwn to consume event from swn2. 10 secs timeout...")
+		select {
+		case <-time.After(10 * time.Second):
+			log.Printf("check if there is any event in swn2 ourselves, should be none if pwn has already consumed")
+			if consume(swnclient2) {
+				log.Println("ERROR: pwn has not consumed swn2's incoming Event within 10 secs")
+			} else {
+				log.Println("SUCCESS: pwn has consumed swn2's incoming Event")
+			}
+		}
+	} else {
+		log.Println("consuming events from swn2 ourselves without external pwn...")
+		consume(swnclient2)
+	}
 
 	done <- true
 }
@@ -83,44 +107,43 @@ func consumer(swnclient2 pb.SWNBusClient, done chan bool) {
 func main() {
 	fetchPeers()
 
-	log.Printf("swn1: %s", swn1.PeerId)
-	log.Printf("swn2: %s", swn2.PeerId)
+	log.Printf("swn1 peerId: %s", swn1.PeerId)
+	log.Printf("swn2 peerId: %s", swn2.PeerId)
 
 	// connect to swn1 gRPC
 	swn1Addr := fmt.Sprintf("%s:%d", swn1.PeerIpv4, swn1.GrpcServerPort)
 	conn1, err := grpc.Dial(swn1Addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("failed to connect to swn1 gRPC: %v", err)
+		log.Fatalf("cwn: failed to connect to swn1 gRPC: %v", err)
 	}
 	defer conn1.Close()
 
 	swnclient1 := pb.NewSWNBusClient(conn1)
-	log.Println("connected to swn1 gRPC")
+	log.Println("cwn: connected to swn1 gRPC")
 
 	// connect to swn2 gRPC
 	swn2Addr := fmt.Sprintf("%s:%d", swn2.PeerIpv4, swn2.GrpcServerPort)
 	conn2, err := grpc.Dial(swn2Addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("failed to connect to swn2 gRPC: %v", err)
+		log.Fatalf("cwn: failed to connect to swn2 gRPC: %v", err)
 	}
 	defer conn2.Close()
 
 	swnclient2 := pb.NewSWNBusClient(conn2)
-	log.Println("connected to swn2 gRPC")
+	log.Println("cwn: connected to swn2 gRPC")
 
 	done := make(chan bool, 1)
-
 	go consumer(swnclient2, done)
 
 	// [cwn1 -> swn1] -> swn2
 	stream, err := swnclient1.LocalDistributeEvents(context.Background())
 	if err != nil {
-		log.Fatalf("failed to create stream from LocalDistributeEvents: %v", err)
+		log.Fatalf("cwn: failed to create stream from LocalDistributeEvents: %v", err)
 	}
 
 	swn2MultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%v/p2p/%v", swn2.PeerIpv4, swn2.TransportPort, swn2.PeerId))
 	if err != nil {
-		log.Fatalf("failed to create multiaddr for swn2: %v", err)
+		log.Fatalf("swn1: failed to create multiaddr for swn2: %v", err)
 	}
 
 	event := &pb.Event{
@@ -132,9 +155,9 @@ func main() {
 	}
 
 	if err := stream.Send(event); err != nil {
-		log.Fatalf("failed to send event: %v", err)
+		log.Fatalf("swn1: failed to send event: %v", err)
 	}
 
-	log.Println("closing consumer")
 	<-done
+	log.Println("pwn consumer is closed")
 }

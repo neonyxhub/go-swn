@@ -46,7 +46,7 @@ func TestEventHandler(t *testing.T) {
 
 	require.Equal(t, len(raw), writeLen)
 
-	evt2 := <-getter.GrpcServer.Bus.EventToLocal
+	evt2 := <-getter.GrpcServer.Bus.EventUpstream
 
 	require.True(t, proto.Equal(evt, evt2))
 }
@@ -75,7 +75,7 @@ func TestEventHandler2(t *testing.T) {
 	go sender.EventHandler(stream)
 
 	select {
-	case <-getter.GrpcServer.Bus.EventToLocal:
+	case <-getter.GrpcServer.Bus.EventUpstream:
 		t.Fatal("should not receive improper packed event")
 	case <-time.After(10 * time.Millisecond):
 		require.True(t, true, "should timeout as EventHandler can't process improper event")

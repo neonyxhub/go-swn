@@ -2,7 +2,10 @@
 
 set -e
 
-DOCKER_ARGS=${1:-}
+run_with_pwn=${1:-cwn}
+DOCKER_ARGS=${2:-}
+
+export RUN_WITH_PWN=$run_with_pwn
 
 if ! docker network ls --format '{{.Name}}' | grep e2e > /dev/null;then
 	echo "[*] creating a e2e docker network"

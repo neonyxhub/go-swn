@@ -7,38 +7,38 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
+	"go.neonyx.io/go-swn/internal/swn/grpc_server"
 	"go.neonyx.io/go-swn/pkg/bus/pb"
 )
 
 var (
-	ErrNoLocalListener       = errors.New("no local listener is presented")
 	ErrNoExistingConnection  = errors.New("no existing connection is presented")
 	ErrIncompleteStreamWrite = errors.New("incomplete stream write")
 	ErrEmptyEvent            = errors.New("empty event")
 )
 
 // Passes event to listeners, connected over grpc method
-func (s *SWN) EventToLocalListener(event *pb.Event) error {
-	s.Log.Sugar().Infoln("passing event to local listener")
+func (s *SWN) ProduceUpstream(event *pb.Event) error {
+	select {
+	case s.GrpcServer.Bus.EventUpstream <- event:
+		return nil
+	case <-time.After(s.Cfg.GrpcServer.BusTimer):
+		s.GrpcServer.Bus.Lock()
+		s.GrpcServer.Bus.EventUpstreamBuf = append(s.GrpcServer.Bus.EventUpstreamBuf, event)
+		s.GrpcServer.Bus.Unlock()
+		s.Log.Sugar().Infoln("buffered event upon timeout")
 
-	if !s.GrpcServer.Bus.HasListener {
-		s.Log.Sugar().Infoln("local listener is not detected")
-		s.GrpcServer.Bus.EventToLocal <- event
-		// TODO: store event to storage
-		return ErrNoLocalListener
+		go s.GrpcServer.Bus.FlushUpstreamBuffer()
+
+		return grpc_server.ErrNoLocalListener
 	}
-
-	s.GrpcServer.Bus.EventToLocal <- event
-
-	s.Log.Sugar().Infoln("wrote event to channel")
-
-	return nil
 }
 
 // Listens for incoming requests and passes them to the network
@@ -60,7 +60,7 @@ func (s *SWN) StartEventListening() (err error) {
 			select {
 			case <-s.Ctx.Done():
 				return
-			case evt := <-s.GrpcServer.Bus.EventFromLocal:
+			case evt := <-s.GrpcServer.Bus.EventDownstream:
 				s.Log.Sugar().Infof("got event to pass: %v", s.Peer.Pretty(evt))
 
 				err := s.PassEventToNetwork(evt)

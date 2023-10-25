@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -9,7 +10,8 @@ import (
 // Config structure for user-defined config.yaml
 type Config struct {
 	GrpcServer struct {
-		Addr string `yaml:"addr"`
+		Addr     string        `yaml:"addr"`
+		BusTimer time.Duration `yaml:"bus_timer"`
 	} `yaml:"grpc_server"`
 	DataStore struct {
 		Path string `yaml:"path"`
