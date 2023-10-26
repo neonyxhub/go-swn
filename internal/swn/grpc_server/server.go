@@ -19,7 +19,7 @@ const (
 var (
 	ErrGrpcTimeout = errors.New("gRPC server timeout")
 
-	Log logger.Logger
+	Log = logger.GetLogger()
 )
 
 type GrpcServer struct {

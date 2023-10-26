@@ -19,7 +19,7 @@ import (
 
 var (
 	// shared across package instantiated logger
-	Log logger.Logger
+	Log = logger.GetLogger()
 )
 
 type Handler struct {
@@ -58,19 +58,17 @@ type SWN struct {
 
 // New creates an instance of SWN with libp2p peer, datastore, gRPC server, P2PBus
 func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
-	var err error
-
 	logCfg := &logger.LoggerCfg{
 		Dev:      cfg.Log.Dev,
 		OutPaths: cfg.Log.OutPaths,
 		ErrPaths: cfg.Log.ErrPaths,
 	}
-	Log, err = logger.New(logCfg)
+	log, err := logger.New(logCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	Log.Info("creating a new SWN")
+	log.Info("creating a new SWN")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	swn := SWN{

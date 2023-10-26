@@ -32,7 +32,7 @@ var (
 		return fmt.Errorf("failed to negotiate protocol: %w", args...)
 	}
 
-	Log logger.Logger
+	Log = logger.GetLogger()
 )
 
 // Eventbus to send and retrieve events, coming from/to libp2p handlers

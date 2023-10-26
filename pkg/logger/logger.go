@@ -3,6 +3,7 @@ package logger
 import (
 	"os"
 	"path/filepath"
+	"sync"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -13,12 +14,34 @@ const (
 	STDERR = "stderr"
 )
 
-type Logger = *zap.Logger
+var (
+	logger *zap.Logger
+	once   sync.Once
+)
+
+func GetLogger() *zap.Logger {
+	once.Do(func() {
+		log, err := New(DefaultConfig())
+		if err != nil {
+			panic(err)
+		}
+		logger = log
+	})
+	return logger
+}
 
 type LoggerCfg struct {
 	Dev      bool
 	OutPaths []string
 	ErrPaths []string
+}
+
+func DefaultConfig() *LoggerCfg {
+	return &LoggerCfg{
+		Dev:      false,
+		OutPaths: []string{STDOUT},
+		ErrPaths: []string{STDERR},
+	}
 }
 
 func ensureFilepathExists(paths []string) error {
