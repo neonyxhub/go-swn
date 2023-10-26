@@ -3,6 +3,7 @@ package swn
 import (
 	"os"
 
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,22 +22,27 @@ type debugPeers struct {
 }
 
 func (s *SWN) DebugSavePeerInfo() error {
-	port, err := s.GetPeerTransportPort("tcp")
+	port, err := s.Peer.GetTransportPort("tcp")
 	if err != nil {
 		return err
 	}
 
-	currentPeer := debugPeerInfo{
+	peer := debugPeerInfo{
 		GrpcServerPort: s.GrpcServer.GetPort(),
 		PeerIpv4:       s.Peer.GetIpv4(),
 		PeerId:         s.ID().String(),
 		TransportPort:  port,
 	}
 
-	s.Log.Info("saving debug info")
+	s.Log.Info("saving debug info",
+		zap.Int("gRPC_port", peer.GrpcServerPort),
+		zap.String("gRPC IPv4", peer.PeerIpv4),
+		zap.String("peerId", peer.PeerId),
+		zap.String("peer tcp port", peer.TransportPort),
+	)
 
 	if _, err := os.Stat(debugYml); os.IsNotExist(err) {
-		data, err := yaml.Marshal(&debugPeers{Peers: []debugPeerInfo{currentPeer}})
+		data, err := yaml.Marshal(&debugPeers{Peers: []debugPeerInfo{peer}})
 		if err != nil {
 			return err
 		}
@@ -59,13 +65,13 @@ func (s *SWN) DebugSavePeerInfo() error {
 	duplicate := false
 
 	for _, p := range peers.Peers {
-		if p.PeerId == currentPeer.PeerId {
+		if p.PeerId == peer.PeerId {
 			duplicate = true
 		}
 	}
 
 	if !duplicate {
-		peers.Peers = append(peers.Peers, currentPeer)
+		peers.Peers = append(peers.Peers, peer)
 
 		data, err := yaml.Marshal(peers)
 		if err != nil {
@@ -80,7 +86,7 @@ func (s *SWN) DebugSavePeerInfo() error {
 }
 
 func (s *SWN) DebugDeletePeerInfo() error {
-	currentPeer := debugPeerInfo{
+	peer := debugPeerInfo{
 		PeerId: s.ID().String(),
 	}
 
@@ -96,7 +102,7 @@ func (s *SWN) DebugDeletePeerInfo() error {
 	}
 
 	for i, p := range peers.Peers {
-		if p.PeerId == currentPeer.PeerId {
+		if p.PeerId == peer.PeerId {
 			s.Log.Info("deleting debug info")
 
 			peers.Peers = append(peers.Peers[:i], peers.Peers[i+1:]...)

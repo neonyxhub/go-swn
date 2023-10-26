@@ -2,26 +2,14 @@ syntax = "proto3";
 package auth_model.pb;
 option go_package = "go.neonyx.io/go-swn/internal/swn/pb";
 
-enum KeyType {
-	RSA = 0;
-	Ed25519 = 1;
-	Secp256k1 = 2;
-	ECDSA = 3;
+// Local SWN's device model saved in leveldb
+message DeviceAuth {
+	bytes PrivKey = 1;
 }
 
-message DeviceId {
-	bytes Device_id = 1;
-}
-
-message AccID {
-	bytes Acc_id = 1;
-}
-
-message PeerId {
+// Request during swn-swn auth
+message DeviceAuthRequest {
 	bytes Data = 1;
-}
-
-message AuthInfo {
-	bytes OtherDevicePubKey = 1;
-	bytes MyDevicePrivateKey = 2;
+	// temporal: getter should be aware of sender device's pubkey
+	bytes SenderDevPubKey = 2;
 }

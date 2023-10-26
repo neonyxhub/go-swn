@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
 	neo_swn "go.neonyx.io/go-swn/internal/swn"
+	"go.neonyx.io/go-swn/internal/swn/grpc_server"
 	api "go.neonyx.io/go-swn/pkg/bus/pb"
 )
 
@@ -33,26 +33,28 @@ func mockEvent(i int) (*api.Event, []byte, error) {
 	return evt, rawEvt, err
 }
 
-func TestEventToLocalListener(t *testing.T) {
+func TestProduceUpstream(t *testing.T) {
 	swn, err := newSWN(1)
 	defer closeSWN(t, swn)
 	require.NoError(t, err)
 
-	swn.GrpcServer.Bus.HasListener = true
 	done := make(chan bool, 1)
 	completed := 0
 	var mu sync.Mutex
 
+	N := 3
+
 	// imitating LocalFunnelEvents rpc
 	var wg1 sync.WaitGroup
-	wg1.Add(5)
+	wg1.Add(N)
 
+	// single consumer to receive events
 	go func(done chan bool, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-done:
 				return
-			case event := <-swn.GrpcServer.Bus.EventToLocal:
+			case event := <-swn.GrpcServer.Bus.EventUpstream:
 				require.True(t, strings.HasPrefix(event.Lexicon.Uri, "uri-"))
 				mu.Lock()
 				completed += 1
@@ -63,12 +65,12 @@ func TestEventToLocalListener(t *testing.T) {
 	}(done, &wg1)
 
 	var wg2 sync.WaitGroup
-	for i := 0; i < 5; i++ {
-		wg2.Add(1)
+	wg2.Add(N)
+	for i := 0; i < N; i++ {
 		go func(count int, wg *sync.WaitGroup) {
 			defer wg.Done()
 			resp, _, _ := mockEvent(count)
-			err := swn.EventToLocalListener(resp)
+			err := swn.ProduceUpstream(resp)
 			require.NoError(t, err)
 		}(i, &wg2)
 	}
@@ -77,20 +79,24 @@ func TestEventToLocalListener(t *testing.T) {
 	wg2.Wait()
 
 	mu.Lock()
-	require.Equal(t, completed, 5)
+	require.Equal(t, completed, N)
 	mu.Unlock()
 	done <- true
 
-	// error case
-	swn.GrpcServer.Bus.HasListener = false
-	resp, _, _ := mockEvent(1)
+	// error case: no one listens to EventUpstream
+	for i := 0; i < 2; i++ {
+		resp, _, _ := mockEvent(1)
+		err = swn.ProduceUpstream(resp)
+		require.Error(t, err, grpc_server.ErrNoLocalListener)
+	}
 
+	// 1 buffered upstream event should be flushed
+	require.Equal(t, len(swn.GrpcServer.Bus.EventUpstreamBuf), 1)
+
+	// bring listener back, and flush events
 	go func() {
-		<-swn.GrpcServer.Bus.EventToLocal
+		<-swn.GrpcServer.Bus.EventUpstream
 	}()
-
-	err = swn.EventToLocalListener(resp)
-	require.Error(t, err, neo_swn.ErrNoLocalListener)
 }
 
 func TestStartEventListening(t *testing.T) {
@@ -99,7 +105,7 @@ func TestStartEventListening(t *testing.T) {
 	defer closeSWN(t, swn)
 
 	evt, _, _ := mockEvent(1)
-	swn.GrpcServer.Bus.EventFromLocal <- evt
+	swn.GrpcServer.Bus.EventDownstream <- evt
 	require.True(t, true, "event should be received via StartEventListening()")
 }
 
@@ -112,7 +118,7 @@ func TestStopEventListening(t *testing.T) {
 
 	go func(done chan bool) {
 		evt, _, _ := mockEvent(1)
-		swn.GrpcServer.Bus.EventFromLocal <- evt
+		swn.GrpcServer.Bus.EventDownstream <- evt
 		done <- true
 	}(done)
 
@@ -139,23 +145,14 @@ func TestPassEventToNetwork(t *testing.T) {
 	ma := getter.Peer.Getp2pMA()
 	evt.Dest.Addr = ma.Bytes()
 
-	for _, p := range getter.Peer.Host.Mux().Protocols() {
-		log.Printf("protocol: %v\b", p)
-	}
-
 	err = sender.PassEventToNetwork(evt)
 	require.NoError(t, err)
 
-	evt2 := <-getter.GrpcServer.Bus.EventToLocal
+	log.Println("waiting for event come to EventUpstream")
+	evt2 := <-getter.GrpcServer.Bus.EventUpstream
 	require.True(t, proto.Equal(evt, evt2))
 
 	// invalid NewMultiaddrBytes()
-	log.Println("checking NewMultiaddrBytes")
-
-	maStr := "/ip4/0.0.0.0/tcp/65002/p2p/12D3KooWMGh4n7ra4WiQwCFrr3wCnreYV5KFePs3WBj65NHd4jfo"
-	ma, err = multiaddr.NewMultiaddr(maStr)
-	require.NoError(t, err)
-
 	evt, _, _ = mockEvent(1)
 	evt.Dest.Addr = []byte{}
 	err = sender.PassEventToNetwork(evt)
@@ -180,9 +177,13 @@ func TestConnPassEvent(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender)
 
-	sender.Peer.EstablishConn(getter.Peer.Getp2pMA())
+	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
 
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
+	require.Equal(t, 1, len(conns))
+
+	// manually authorize
+	getter.AuthDeviceMap[sender.ID().String()] = sender.Device.Id
 
 	evt, _, _ := mockEvent(1)
 
@@ -192,7 +193,7 @@ func TestConnPassEvent(t *testing.T) {
 	select {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Timeout: no event to getter is sent within 2 sec")
-	case evt2 := <-getter.GrpcServer.Bus.EventToLocal:
+	case evt2 := <-getter.GrpcServer.Bus.EventUpstream:
 		require.True(t, proto.Equal(evt, evt2))
 	}
 }
@@ -210,8 +211,12 @@ func TestMultipleSenders(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender2)
 
-	sender1.Peer.EstablishConn(getter.Peer.Getp2pMA())
-	sender2.Peer.EstablishConn(getter.Peer.Getp2pMA())
+	sender1.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	sender2.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+
+	// manually authorize
+	getter.AuthDeviceMap[sender1.ID().String()] = sender1.Device.Id
+	getter.AuthDeviceMap[sender2.ID().String()] = sender2.Device.Id
 
 	senders := []*neo_swn.SWN{sender1, sender2}
 	done := make(chan bool, 1)
@@ -225,7 +230,7 @@ func TestMultipleSenders(t *testing.T) {
 			select {
 			case <-done:
 				return
-			case evt := <-getter.GrpcServer.Bus.EventToLocal:
+			case evt := <-getter.GrpcServer.Bus.EventUpstream:
 				require.NotEmpty(t, evt)
 				mu.Lock()
 				completed = append(completed, time.Now())

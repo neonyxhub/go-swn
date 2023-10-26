@@ -1,15 +1,17 @@
 ---
 grpc_server:
-  addr: :8080
+  addr: :50051
+  bus_timer: 1s
 datastore:
   path: data
 p2p:
-  multiaddr: "/ip4/0.0.0.0/tcp/0"
-  privkey_filepath: "/tmp/peer.key"
+  multiaddr: "/ip4/0.0.0.0/tcp/65000"
+  conn_limit: [100, 400]
 log:
   dev: true
   out_paths:
     - stdout
-    #- logs/out.log
+    # for an example, logs can be also written to a filepath
+    #- out.log
   err_paths:
     - stderr

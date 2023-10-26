@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"go.neonyx.io/go-swn/internal/swn/config"
 	"go.neonyx.io/go-swn/pkg/bus/pb"
 	"go.neonyx.io/go-swn/pkg/logger"
 )
@@ -27,18 +28,17 @@ type GrpcServer struct {
 }
 
 // New creates a new gRPC server and register a new SWNBusServer service
-func New() *GrpcServer {
+func New(cfg *config.Config, log logger.Logger) *GrpcServer {
 	s := grpc.NewServer()
 
 	sBus := &SWNBusServer{
-		EventFromLocal: make(chan *pb.Event),
-		EventToLocal:   make(chan *pb.Event),
-		HasListener:    false,
+		EventDownstream: make(chan *pb.Event),
+		EventUpstream:   make(chan *pb.Event),
 	}
 
 	pb.RegisterSWNBusServer(s, sBus)
 
-	return &GrpcServer{Server: s, Bus: sBus}
+	return &GrpcServer{Server: s, Bus: sBus, Log: log}
 }
 
 // Serve serves gRPC connection on already registered services.

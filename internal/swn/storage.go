@@ -1,85 +1,81 @@
 package swn
 
 import (
-	"crypto/sha256"
-
-	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/syndtr/goleveldb/leveldb"
 	auth_pb "go.neonyx.io/go-swn/internal/swn/pb"
 	"google.golang.org/protobuf/proto"
 )
 
 const (
-	authDBkey = "/swnauth/"
+	dbRootKey = "/swn"
 )
 
-// Get row for device id, described in auth/pb
-func (s *SWN) GetAuthInfo(deviceId *auth_pb.DeviceId) (*auth_pb.AuthInfo, error) {
-	key := s.Ds.NewKey(authDBkey, string(deviceId.DeviceId))
+// Get device auth described in auth_model.proto
+// LevelDB path: /swn/prvkey
+func (s *SWN) GetDeviceAuth() error {
+	key := s.Ds.NewKey(dbRootKey, "prvkey")
 	raw, err := s.Ds.Get(key, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	authInfo := auth_pb.AuthInfo{}
-
-	err = proto.Unmarshal(raw, &authInfo)
-
-	return &authInfo, err
-}
-
-// Get row for peer id, described in auth/pb
-func (s *SWN) GetAuthInfoFromPeerId(peerId *auth_pb.PeerId) (*auth_pb.AuthInfo, error) {
-	deviceId, err := s.GetDeviceForPeerId(peerId)
-
+	deviceAuth := &auth_pb.DeviceAuth{}
+	err = proto.Unmarshal(raw, deviceAuth)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return s.GetAuthInfo(deviceId)
+
+	s.Device.ParsePrivKeyRaw(deviceAuth.PrivKey)
+	s.Device.PubKey = &s.Device.PrivKey.PublicKey
+
+	return nil
 }
 
-// Get device id for peer id
-func (s *SWN) GetDeviceForPeerId(peerId *auth_pb.PeerId) (*auth_pb.DeviceId, error) {
-	return &auth_pb.DeviceId{}, nil
-}
+// Save device auth described in auth_model.proto
+// LevelDB path: /swn/prvkey
+func (s *SWN) SaveDeviceAuth() error {
+	key := s.Ds.NewKey(dbRootKey, "prvkey")
 
-// Get device id for account id
-func (s *SWN) GetDeviceForAcc(accountId *auth_pb.AccID) (*auth_pb.DeviceId, error) {
-	return &auth_pb.DeviceId{}, nil
-}
+	deviceAuth := &auth_pb.DeviceAuth{
+		PrivKey: s.Device.GetPrivKeyRaw(),
+	}
 
-// Get row for account id, described in auth/pb
-func (s *SWN) GetAuthInfoFromAccID(accountId *auth_pb.AccID) (*auth_pb.AuthInfo, error) {
-	deviceId, err := s.GetDeviceForAcc(accountId)
-
+	val, err := proto.Marshal(deviceAuth)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return s.GetAuthInfo(deviceId)
+
+	if err = s.Ds.Put(key, val, nil); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// Save row, described in auth/pb
-func (s *SWN) SaveAuthInfo(devicePub crypto.PubKey, myPriv crypto.PrivKey) (*auth_pb.DeviceId, error) {
-	hash := sha256.New()
-	rawDeviceId, _ := devicePub.Raw()
-	hash.Write(rawDeviceId)
+func (s *SWN) CheckDeviceId() error {
+	if err := s.GetDeviceAuth(); err == leveldb.ErrNotFound {
+		s.Log.Info("generating a new device keypair")
+		if err := s.Device.GenKeyPair(); err != nil {
+			return err
+		}
 
-	deviceId := hash.Sum(nil)[:12]
-	key := s.Ds.NewKey(authDBkey, string(deviceId))
+		if err = s.Device.GenDeviceId(); err != nil {
+			return err
+		}
 
-	otherDevicePubkey, _ := devicePub.Raw()
-	myDevicePrivateKey, _ := myPriv.Raw()
+		if err = s.SaveDeviceAuth(); err != nil {
+			return err
+		}
 
-	authInfo := &auth_pb.AuthInfo{
-		OtherDevicePubKey:  otherDevicePubkey,
-		MyDevicePrivateKey: myDevicePrivateKey,
+		return nil
+	} else if err != nil {
+		return err
 	}
 
-	data, err := proto.Marshal(authInfo)
-	if err != nil {
-		return nil, err
+	s.Log.Info("read an existing keypair")
+	if err := s.Device.GenDeviceId(); err != nil {
+		return err
 	}
 
-	err = s.Ds.Put(key, data, nil)
-
-	return &auth_pb.DeviceId{DeviceId: deviceId}, err
+	return nil
 }

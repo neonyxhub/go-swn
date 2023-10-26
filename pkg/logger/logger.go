@@ -64,8 +64,7 @@ func validateCfg(cfg *LoggerCfg) error {
 	return nil
 }
 
-func New(cfg *LoggerCfg) (Logger, error) {
-
+func New(cfg *LoggerCfg) (*zap.Logger, error) {
 	err := validateCfg(cfg)
 	if err != nil {
 		return nil, err

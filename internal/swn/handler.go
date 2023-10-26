@@ -2,12 +2,8 @@ package swn
 
 import (
 	"bufio"
-	"strconv"
-	"strings"
 
 	"github.com/libp2p/go-libp2p/core/network"
-	"go.neonyx.io/go-swn/pkg/bus/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -16,7 +12,7 @@ const (
 )
 
 func (s *SWN) ApplyDefaultHandlers() {
-	s.Handlers = []*Handler{
+	s.Handlers = []Handler{
 		{
 			Id:   HID_AUTH,
 			Func: s.AuthHandler,
@@ -28,63 +24,47 @@ func (s *SWN) ApplyDefaultHandlers() {
 	}
 }
 
-func (s *SWN) RegisterNewHandler(h ...*Handler) {
+func (s *SWN) RegisterNewHandler(h ...Handler) {
 	s.Handlers = append(s.Handlers, h...)
 }
 
-// Authorize to SWN
+// Handle incoming auth from another SWN via HID_AUTH protocol
 func (s *SWN) AuthHandler(stream network.Stream) {
-	// Create a buffer stream for non-blocking read and write.
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	s.Log.Sugar().Infof("got auth stream: remote peer %v", stream.Conn().RemotePeer())
 
-	err := s.PerformIncomingAuth(rw)
-	if err != nil {
+	if err := s.AuthIn(stream); err == ErrNotAuthorized {
+		s.Log.Sugar().Warnf("closing stream for failed auth stream: remote peer %v", stream.Conn().RemotePeer())
+	} else if err != nil {
 		s.Log.Sugar().Errorln(err)
-		s.Log.Sugar().Warnf("closing stream for failed auth stream: %s", stream.Conn().ID())
-		stream.Conn().Close()
+		stream.Reset()
+		return
+	}
+
+	if err := stream.Close(); err != nil {
+		s.Log.Sugar().Errorln(err)
 	}
 }
 
-// Regular libp2p handler, to handle Events coming into HID_EVENTBUS protocol
+// Handle protobuf Events via HID_EVENTBUS protocol
 func (s *SWN) EventHandler(stream network.Stream) {
-	s.Log.Info("got event stream")
-	r := bufio.NewReader(stream)
-	for {
-		// TODO: implement another way of reading packed event bytes instead of \n
-		lenEvt, err := r.ReadBytes('\n')
-		if err != nil {
-			if err == network.ErrReset {
-				// TODO: handle ErrReset properly
-				s.Log.Sugar().Errorln(err)
-				break
-			}
+	s.Log.Sugar().Infof("got event stream: remote peer %v", stream.Conn().RemotePeer())
 
-			s.Log.Sugar().Errorf("error reading event length: %v", err)
-			continue
-		}
-
-		lenEvtInt, err := strconv.Atoi(strings.Trim(string(lenEvt), "\n"))
-		if err != nil {
-			s.Log.Sugar().Errorf("event length is not number: %v", err)
-			continue
-		}
-
-		rawEvt := make([]byte, lenEvtInt)
-		_, err = r.Read(rawEvt)
-		if err != nil {
-			s.Log.Sugar().Errorf("error reading event: %v", err)
-			continue
-		}
-
-		evt := &pb.Event{}
-		err = proto.Unmarshal(rawEvt, evt)
-		if err != nil {
-			s.Log.Sugar().Errorf("error unmarshalling event: %v", err)
-			continue
-		}
-
-		s.Log.Sugar().Infof("got event: %s", s.Peer.Pretty(evt))
-
-		s.EventToLocalListener(evt)
+	if !s.IsAuthenticated(stream.Conn()) {
+		s.Log.Sugar().Warnf("closing stream for unauthorized connection: %s", stream.Conn().ID())
+		stream.Close()
+		return
 	}
+
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+
+	evt, err := UnpackEvent(rw)
+	if err != nil {
+		s.Log.Sugar().Errorf("failed to UnpackEvent: %v", err)
+		stream.Reset()
+		return
+	}
+
+	s.Log.Sugar().Infof("got event: %s", s.Peer.Pretty(evt))
+
+	s.ProduceUpstream(evt)
 }

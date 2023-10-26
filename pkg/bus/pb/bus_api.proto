@@ -1,15 +1,26 @@
 syntax = "proto3";
 package bus_api.pb;
-option go_package = "go.neonyx.io/go-swn/internal/swn/pb";
+option go_package = "go.neonyx.io/go-swn/pkg/bus/pb";
 
 import "google/protobuf/empty.proto";
 
 service SWNBus {
 	// swn here is the server, which listens to events from cwn
 	rpc LocalDistributeEvents(stream Event) returns (StreamEventsResponse) {};
-	// swn here is the server, which gives events to CWN
+	// swn here is the server, which gives events to cwn
 	rpc LocalFunnelEvents(ListenEventsRequest) returns (stream Event) {};
-	rpc GetPeerId(google.protobuf.Empty) returns (Peer) {};
+	// returns local swn's peer information
+	rpc GetPeerInfo(google.protobuf.Empty) returns (Peer) {};
+}
+
+enum EventType {
+	REQ = 0;
+	RESP = 1;
+	ERR = 2;
+}
+
+enum AccountAuthType {
+	SIG = 0;
 }
 
 message Destination {
@@ -20,10 +31,18 @@ message LexiconUri {
 	string Uri = 1;
 }
 
+message AccountAuth {
+    AccountAuthType Type = 1;
+    bytes Token = 2;
+}
+
 message Event {
-	Destination Dest = 1;
-	LexiconUri Lexicon = 2;
-	bytes Data = 3;
+	uint64 Id = 1;
+	EventType Type = 2;
+	Destination Dest = 3;
+	LexiconUri Lexicon = 4;
+	bytes Data = 5;
+	AccountAuth AccountAuth = 6;
 }
 
 message Peer {
@@ -34,8 +53,3 @@ message Peer {
 
 message ListenEventsRequest {}
 message StreamEventsResponse {}
-
-
-message JWT {
-	bytes AccountID = 1;
-}

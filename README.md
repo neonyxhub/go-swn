@@ -30,13 +30,19 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 - `make init`
 	- this will run `make configure`, `make add-commit-hook` targets
 - Do changes in code
-- `make dev`
-	- this will build a Docker image and run it
+- `go run cmd/swn/swn.go`
+- `go run cmd/swn/swn.go -debug=true` -- check all flags via `-h`
+
+### Run as Docker container via Makefile
+- `make build-dev` -- build dev image
+- `make dev` -- run container of dev image
 - You can add necessary `docker run` arguments to it as:
-    - `make dev "ARGS=-p 8080:8080"`. It will expose internal port
+    - `make dev "ARGS=-p 50051:50051"`. It will expose internal port
+    - `make dev "CMD_ARGS=-debug=true"`
 
 ### Git commit
 * Git commit messages should follow the pattern `<subject>: <description>`
+* Check [deployment/commit-msg-hook](deployment/commit-msg-hook) for details
 
 ### Tests
 
