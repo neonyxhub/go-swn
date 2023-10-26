@@ -9,7 +9,7 @@ import (
 
 	"go.neonyx.io/go-swn/internal/swn/config"
 	"go.neonyx.io/go-swn/pkg/bus/pb"
-	logger "go.neonyx.io/go-swn/pkg/logger"
+	"go.neonyx.io/go-swn/pkg/logger"
 )
 
 const (
@@ -18,18 +18,17 @@ const (
 
 var (
 	ErrGrpcTimeout = errors.New("gRPC server timeout")
-
-	Log = logger.GetLogger()
 )
 
 type GrpcServer struct {
 	Server   *grpc.Server
 	Listener net.Listener
 	Bus      *SWNBusServer
+	Log      logger.Logger
 }
 
 // New creates a new gRPC server and register a new SWNBusServer service
-func New(cfg *config.Config) *GrpcServer {
+func New(cfg *config.Config, log logger.Logger) *GrpcServer {
 	s := grpc.NewServer()
 
 	sBus := &SWNBusServer{
@@ -39,7 +38,7 @@ func New(cfg *config.Config) *GrpcServer {
 
 	pb.RegisterSWNBusServer(s, sBus)
 
-	return &GrpcServer{Server: s, Bus: sBus}
+	return &GrpcServer{Server: s, Bus: sBus, Log: log}
 }
 
 // Serve serves gRPC connection on already registered services.
@@ -54,7 +53,7 @@ func (s *GrpcServer) Serve(addr string) error {
 
 	go func() {
 		if err := s.Server.Serve(listener); err != nil {
-			Log.Sugar().Errorf("gRPC Serve() failed: %v", err)
+			s.Log.Sugar().Errorf("gRPC Serve() failed: %v", err)
 		}
 	}()
 

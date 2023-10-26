@@ -34,7 +34,7 @@ func (s *SWN) ProduceUpstream(event *pb.Event) error {
 		s.GrpcServer.Bus.Lock()
 		s.GrpcServer.Bus.EventUpstreamBuf = append(s.GrpcServer.Bus.EventUpstreamBuf, event)
 		s.GrpcServer.Bus.Unlock()
-		Log.Sugar().Infoln("buffered event upon timeout")
+		s.Log.Sugar().Infoln("buffered event upon timeout")
 
 		go s.GrpcServer.Bus.FlushUpstreamBuffer()
 
@@ -54,7 +54,7 @@ func (s *SWN) StartEventListening() (err error) {
 	for _, addr := range s.Peer.Host.Addrs() {
 		maddrs = append(maddrs, addr.String())
 	}
-	Log.Sugar().Infof("start event listening on peer: %v", strings.Join(maddrs, ","))
+	s.Log.Sugar().Infof("start event listening on peer: %v", strings.Join(maddrs, ","))
 
 	go func(s *SWN) {
 		for {
@@ -62,11 +62,11 @@ func (s *SWN) StartEventListening() (err error) {
 			case <-s.Ctx.Done():
 				return
 			case evt := <-s.GrpcServer.Bus.EventDownstream:
-				Log.Sugar().Infof("got event to pass: %v", s.Peer.Pretty(evt))
+				s.Log.Sugar().Infof("got event to pass: %v", s.Peer.Pretty(evt))
 
 				err := s.PassEventToNetwork(evt)
 				if err != nil {
-					Log.Sugar().Errorf("error passing event to network: %v", err)
+					s.Log.Sugar().Errorf("error passing event to network: %v", err)
 				}
 			}
 		}
@@ -83,7 +83,7 @@ func (s *SWN) StopEventListening() {
 // otherwise perform full challenge-response auth
 func (s *SWN) CheckAuth(conn network.Conn, destMa string) error {
 	if s.IsAuthenticated(conn) {
-		Log.Sugar().Infof("conn %v is already authenticated")
+		s.Log.Sugar().Infof("conn %v is already authenticated")
 		return nil
 	}
 
@@ -105,7 +105,7 @@ func (s *SWN) PassEventToNetwork(evt *pb.Event) error {
 	defer cancel()
 
 	if evt == nil {
-		Log.Sugar().Errorln(ErrEmptyEvent)
+		s.Log.Sugar().Errorln(ErrEmptyEvent)
 		return ErrEmptyEvent
 	}
 
@@ -131,7 +131,7 @@ func (s *SWN) PassEventToNetwork(evt *pb.Event) error {
 
 	if len(conns) > 1 {
 		// TODO: create ConnectionManager to handle mux. streams under p2p connection
-		Log.Sugar().Errorf("should be only 1 conn. and many streams, have %v conns", len(conns))
+		s.Log.Sugar().Errorf("should be only 1 conn. and many streams, have %v conns", len(conns))
 	}
 	conn := conns[0]
 
@@ -171,7 +171,7 @@ func (s *SWN) ConnPassEvent(ctx context.Context, evt *pb.Event, conn network.Con
 	// try to pass event to existing streams with HID_EVENTBUS
 	for _, stream := range conn.GetStreams() {
 		if stream.Protocol() == HID_EVENTBUS {
-			Log.Sugar().Infof("HID_EVENTBUS: writing to existing stream %v of conn %v", stream.ID(), conn.ID())
+			s.Log.Sugar().Infof("HID_EVENTBUS: writing to existing stream %v of conn %v", stream.ID(), conn.ID())
 			n, err := stream.Write(rawEvt)
 			if n != len(rawEvt) {
 				return ErrIncompleteStreamWrite

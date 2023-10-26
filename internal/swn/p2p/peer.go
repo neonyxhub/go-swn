@@ -31,26 +31,16 @@ var (
 	ErrNegotioateProtocol = func(args ...interface{}) error {
 		return fmt.Errorf("failed to negotiate protocol: %w", args...)
 	}
-
-	Log = logger.GetLogger()
 )
-
-// Eventbus to send and retrieve events, coming from/to libp2p handlers
-type Bus struct {
-	Sender chan *pb.Event
-}
 
 type Peer struct {
 	Host host.Host
-	Bus  *Bus
+	Log  logger.Logger
 }
 
-func New(cfg *config.Config, opts ...libp2p.Option) (*Peer, error) {
-	bus := &Bus{
-		Sender: make(chan *pb.Event),
-	}
+func New(cfg *config.Config, log logger.Logger, opts ...libp2p.Option) (*Peer, error) {
 	peer := &Peer{
-		Bus: bus,
+		Log: log,
 	}
 
 	// prepare multiaddr
@@ -186,7 +176,7 @@ func (p *Peer) Getp2pMA() multiaddr.Multiaddr {
 	for _, ma := range p.Host.Addrs() {
 		parts := strings.Split(ma.String(), "/")
 		if len(parts) < 4 {
-			Log.Sugar().Errorf("invalid multiaddr: %v", ma)
+			p.Log.Sugar().Errorf("invalid multiaddr: %v", ma)
 			continue
 		}
 		if parts[1] == "ip4" && parts[2] != "127.0.0.1" {

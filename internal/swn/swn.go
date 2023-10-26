@@ -17,11 +17,6 @@ import (
 	"go.neonyx.io/go-swn/pkg/logger"
 )
 
-var (
-	// shared across package instantiated logger
-	Log = logger.GetLogger()
-)
-
 type Handler struct {
 	Id   string
 	Func network.StreamHandler
@@ -31,6 +26,8 @@ type Handler struct {
 type SWN struct {
 	// swn configuration for gRPC, p2p, logger etc.
 	Cfg *config.Config
+
+	Log logger.Logger
 
 	// local datastore interface and configuration
 	Ds    drivers.DataStore
@@ -76,10 +73,11 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		Ctx:           ctx,
 		CtxCancel:     cancel,
 		AuthDeviceMap: make(map[string][]byte),
+		Log:           log,
 	}
 
 	// new libp2p peer
-	peer, err := p2p.New(cfg, opts...)
+	peer, err := p2p.New(cfg, log, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +100,7 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		return nil, err
 	}
 
-	swn.GrpcServer = grpc_server.New(cfg)
+	swn.GrpcServer = grpc_server.New(cfg, log)
 	swn.GrpcServer.Bus.PeerId = []byte(swn.ID())
 
 	swn.ApplyDefaultHandlers()
@@ -112,19 +110,19 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 
 // Serves gRPC server, set p2p network stream handlers and starts event listening
 func (s *SWN) Run() error {
-	Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
+	s.Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
 	if err := s.GrpcServer.Serve(s.Cfg.GrpcServer.Addr); err != nil {
 		s.Ds.Close()
 		return err
 	}
 
-	Log.Sugar().Infof("starting %d handlers", len(s.Handlers))
+	s.Log.Sugar().Infof("starting %d handlers", len(s.Handlers))
 	for _, h := range s.Handlers {
 		s.Peer.Host.SetStreamHandler(protocol.ID(h.Id), h.Func)
 	}
 
 	for _, p := range s.Peer.Host.Mux().Protocols() {
-		Log.Sugar().Infof("protocol: %v", p)
+		s.Log.Sugar().Infof("protocol: %v", p)
 	}
 
 	if err := s.StartEventListening(); err != nil {
@@ -150,7 +148,7 @@ func (s *SWN) Stop() error {
 		}
 	}
 
-	Log.Sugar().Infof("stopping gRPC server on %s", s.Cfg.GrpcServer.Addr)
+	s.Log.Sugar().Infof("stopping gRPC server on %s", s.Cfg.GrpcServer.Addr)
 	if err := s.GrpcServer.Stop(); err != nil {
 		return err
 	}

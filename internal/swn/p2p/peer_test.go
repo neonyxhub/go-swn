@@ -9,10 +9,17 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.neonyx.io/go-swn/internal/swn/config"
 	"go.neonyx.io/go-swn/internal/swn/p2p"
+	"go.neonyx.io/go-swn/pkg/logger"
 )
 
 func newPeer(t *testing.T, cfg *config.Config) *p2p.Peer {
-	peer, err := p2p.New(cfg)
+	logCfg := &logger.LoggerCfg{
+		Dev:      cfg.Log.Dev,
+		OutPaths: cfg.Log.OutPaths,
+		ErrPaths: cfg.Log.ErrPaths,
+	}
+	log, err := logger.New(logCfg)
+	peer, err := p2p.New(cfg, log)
 	require.NoError(t, err)
 	return peer
 }

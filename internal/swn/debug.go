@@ -34,7 +34,7 @@ func (s *SWN) DebugSavePeerInfo() error {
 		TransportPort:  port,
 	}
 
-	Log.Info("saving debug info",
+	s.Log.Info("saving debug info",
 		zap.Int("gRPC_port", peer.GrpcServerPort),
 		zap.String("gRPC IPv4", peer.PeerIpv4),
 		zap.String("peerId", peer.PeerId),
@@ -103,7 +103,7 @@ func (s *SWN) DebugDeletePeerInfo() error {
 
 	for i, p := range peers.Peers {
 		if p.PeerId == peer.PeerId {
-			Log.Info("deleting debug info")
+			s.Log.Info("deleting debug info")
 
 			peers.Peers = append(peers.Peers[:i], peers.Peers[i+1:]...)
 			data, err := yaml.Marshal(peers)
