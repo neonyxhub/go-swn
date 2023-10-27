@@ -1,6 +1,7 @@
 ---
 grpc_server:
   addr: :50051
+  bus_timer: 1s
 datastore:
   path: data/swn1
 p2p:
