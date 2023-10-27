@@ -1,6 +1,6 @@
 ---
 grpc_server:
-  addr: :50052
+  addr: :50051
 datastore:
   path: data/swn1
 p2p:
@@ -11,4 +11,4 @@ log:
   out_paths:
     - stdout
   err_paths:
-    - stderr
+    - stdout

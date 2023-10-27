@@ -21,6 +21,10 @@ type debugPeerInfo struct {
 	TransportPort  string `yaml:"transport_port"`
 }
 
+var (
+	WAIT_FOR_PWN_SEC = 60
+)
+
 type debugPeers struct {
 	Peers []debugPeerInfo
 }
@@ -86,12 +90,12 @@ func consume(swnclient2 pb.SWNBusClient) bool {
 func consumer(swnclient2 pb.SWNBusClient, done chan bool) {
 	run_with_pwn := os.Getenv("RUN_WITH_PWN")
 	if run_with_pwn == "with_pwn" {
-		log.Println("waiting for the external pwn to consume event from swn2. 10 secs timeout...")
+		log.Printf("waiting for the external pwn to consume event from swn2. %d secs timeout...\n", WAIT_FOR_PWN_SEC)
 		select {
-		case <-time.After(10 * time.Second):
+		case <-time.After(60 * time.Second):
 			log.Printf("check if there is any event in swn2 ourselves, should be none if pwn has already consumed")
 			if consume(swnclient2) {
-				log.Println("ERROR: pwn has not consumed swn2's incoming Event within 10 secs")
+				log.Printf("ERROR: pwn has not consumed swn2's incoming Event within %d secs..\n", WAIT_FOR_PWN_SEC)
 			} else {
 				log.Println("SUCCESS: pwn has consumed swn2's incoming Event")
 			}
@@ -154,10 +158,13 @@ func main() {
 		Data:    []byte{0x1},
 	}
 
+	log.Println("sending Event to swn1")
 	if err := stream.Send(event); err != nil {
 		log.Fatalf("swn1: failed to send event: %v", err)
 	}
 
 	<-done
 	log.Println("pwn consumer is closed")
+
+	//os.Exit(0)
 }

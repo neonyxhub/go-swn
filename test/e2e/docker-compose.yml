@@ -26,7 +26,7 @@ services:
       context: ../../
       dockerfile: Dockerfile
     ports:
-      - 8081:8081
+      - 50052:50051
       - 65001:65001
     volumes:
       - ./testdata:/app/test/e2e/testdata
@@ -40,8 +40,8 @@ services:
       context: ../../
       dockerfile: Dockerfile
     ports:
-      - 8082:8082
-      - 65002:65002
+      - 50053:50051
+      - 65002:65001
     volumes:
       - ./testdata:/app/test/e2e/testdata
     container_name: swn2
