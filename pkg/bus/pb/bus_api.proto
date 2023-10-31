@@ -44,6 +44,7 @@ message Event {
 	LexiconUri Lexicon = 4;
 	bytes Data = 5;
 	AccountAuth AccountAuth = 6;
+	uint64 CreatedTimestamp = 7;
 }
 
 message Peer {
