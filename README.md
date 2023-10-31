@@ -18,10 +18,11 @@ It was developed as core part of [Neonyx Ecosystem](https://neonyx.io)
 * docker
 * go >= 1.21.1
 * protoc
-* protoc-gen-go, protoc-gen-go-grpc
+* protoc-gen-go, protoc-gen-go-grpc mockgen
 ```bash
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+go install github.com/golang/mock/mockgen@latest
 ```
 * [golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
 
