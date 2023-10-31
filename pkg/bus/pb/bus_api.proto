@@ -38,8 +38,7 @@ message AccountAuth {
 }
 
 message Event {
-	// <moduleName>-uint64
-	string Id = 1;
+	uint64 Id = 1;
 	EventType Type = 2;
 	Destination Dest = 3;
 	LexiconUri Lexicon = 4;
