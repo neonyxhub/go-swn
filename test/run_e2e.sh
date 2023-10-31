@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 
 run_with_pwn=${1:-cwn}
 DOCKER_ARGS=${2:-}
@@ -16,7 +16,10 @@ if ! docker network ls --format '{{.Name}}' | grep e2e > /dev/null;then
 	docker network create e2e
 fi
 
+# cleanup on prev. run
+rm -f e2e/testdata/debug.yml
 echo "peers: []" > e2e/testdata/debug.yml
+docker rm cwn1 swn1 swn2
 
 echo "[*] running swn1 swn2"
 run &
