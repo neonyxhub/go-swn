@@ -1,7 +1,14 @@
 ---
+# internal SWN management and fallback option for Event streaming
 grpc_server:
   addr: :50051
-  bus_timer: 1s
+
+# backend to recv and send Event protobufs.
+# Note that gRPC server is still used internally for SWN management
+# options: eventio, grpc, nats
+eventbus: grpc
+eventbus_timer: 1s
+
 datastore:
   path: data
 p2p:

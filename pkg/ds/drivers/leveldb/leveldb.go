@@ -6,7 +6,8 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"go.neonyx.io/go-swn/internal/ds/drivers"
+
+	"go.neonyx.io/go-swn/pkg/ds/drivers"
 )
 
 var (

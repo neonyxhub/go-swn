@@ -8,8 +8,9 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	"go.neonyx.io/go-swn/internal/swn"
 	"google.golang.org/protobuf/proto"
+
+	"go.neonyx.io/go-swn/pkg/swn"
 )
 
 func TestEventHandler(t *testing.T) {
@@ -46,7 +47,7 @@ func TestEventHandler(t *testing.T) {
 
 	require.Equal(t, len(raw), writeLen)
 
-	evt2 := <-getter.GrpcServer.Bus.EventUpstream
+	evt2 := <-getter.EventIO.Upstream
 
 	require.True(t, proto.Equal(evt, evt2))
 }
@@ -75,7 +76,7 @@ func TestEventHandler2(t *testing.T) {
 	go sender.EventHandler(stream)
 
 	select {
-	case <-getter.GrpcServer.Bus.EventUpstream:
+	case <-getter.EventIO.Upstream:
 		t.Fatal("should not receive improper packed event")
 	case <-time.After(10 * time.Millisecond):
 		require.True(t, true, "should timeout as EventHandler can't process improper event")

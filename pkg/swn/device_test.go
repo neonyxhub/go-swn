@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.neonyx.io/go-swn/internal/swn"
+
+	"go.neonyx.io/go-swn/pkg/swn"
 )
 
 func TestGenKeyPair(t *testing.T) {

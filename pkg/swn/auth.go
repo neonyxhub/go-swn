@@ -12,8 +12,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/go-errors/errors"
-	"go.neonyx.io/go-swn/internal/swn/pb"
 	"go.neonyx.io/go-swn/pkg/crypto"
+	"go.neonyx.io/go-swn/pkg/swn/pb"
 )
 
 const (

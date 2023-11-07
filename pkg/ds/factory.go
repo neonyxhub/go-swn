@@ -1,8 +1,8 @@
 package ds
 
 import (
-	"go.neonyx.io/go-swn/internal/ds/drivers"
-	"go.neonyx.io/go-swn/internal/ds/drivers/leveldb"
+	"go.neonyx.io/go-swn/pkg/ds/drivers"
+	"go.neonyx.io/go-swn/pkg/ds/drivers/leveldb"
 )
 
 // New creates a new instance of DataStore

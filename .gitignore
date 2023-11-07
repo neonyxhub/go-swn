@@ -1,4 +1,3 @@
-internal/**/*.pb.go
 .vscode
 cmd/swn/swn
 logs/

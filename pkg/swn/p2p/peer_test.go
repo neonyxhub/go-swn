@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.neonyx.io/go-swn/internal/swn/config"
-	"go.neonyx.io/go-swn/internal/swn/p2p"
+
 	"go.neonyx.io/go-swn/pkg/logger"
+	"go.neonyx.io/go-swn/pkg/swn/config"
+	"go.neonyx.io/go-swn/pkg/swn/p2p"
 )
 
 func newPeer(t *testing.T, cfg *config.Config) *p2p.Peer {

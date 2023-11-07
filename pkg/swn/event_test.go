@@ -13,9 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	neo_swn "go.neonyx.io/go-swn/internal/swn"
-	"go.neonyx.io/go-swn/internal/swn/grpc_server"
 	api "go.neonyx.io/go-swn/pkg/bus/pb"
+	neo_swn "go.neonyx.io/go-swn/pkg/swn"
+
+	"go.neonyx.io/go-swn/internal/grpcserver"
 )
 
 func mockEvent(i int) (*api.Event, []byte, error) {
@@ -54,7 +55,7 @@ func TestProduceUpstream(t *testing.T) {
 			select {
 			case <-done:
 				return
-			case event := <-swn.GrpcServer.Bus.EventUpstream:
+			case event := <-swn.EventIO.Upstream:
 				require.True(t, strings.HasPrefix(event.Lexicon.Uri, "uri-"))
 				mu.Lock()
 				completed += 1
@@ -70,7 +71,7 @@ func TestProduceUpstream(t *testing.T) {
 		go func(count int, wg *sync.WaitGroup) {
 			defer wg.Done()
 			resp, _, _ := mockEvent(count)
-			err := swn.ProduceUpstream(resp)
+			err := swn.EventBus.ProduceUpstream(resp)
 			require.NoError(t, err)
 		}(i, &wg2)
 	}
@@ -86,16 +87,16 @@ func TestProduceUpstream(t *testing.T) {
 	// error case: no one listens to EventUpstream
 	for i := 0; i < 2; i++ {
 		resp, _, _ := mockEvent(1)
-		err = swn.ProduceUpstream(resp)
-		require.Error(t, err, grpc_server.ErrNoLocalListener)
+		err = swn.EventBus.ProduceUpstream(resp)
+		require.Error(t, err, grpcserver.ErrNoLocalListener)
 	}
 
 	// 1 buffered upstream event should be flushed
-	require.Equal(t, len(swn.GrpcServer.Bus.EventUpstreamBuf), 1)
+	require.Equal(t, swn.EventIO.UpstreamBufCnt, 2)
 
 	// bring listener back, and flush events
 	go func() {
-		<-swn.GrpcServer.Bus.EventUpstream
+		<-swn.EventIO.Upstream
 	}()
 }
 
@@ -105,7 +106,7 @@ func TestStartEventListening(t *testing.T) {
 	defer closeSWN(t, swn)
 
 	evt, _, _ := mockEvent(1)
-	swn.GrpcServer.Bus.EventDownstream <- evt
+	swn.EventIO.Downstream <- evt
 	require.True(t, true, "event should be received via StartEventListening()")
 }
 
@@ -118,7 +119,7 @@ func TestStopEventListening(t *testing.T) {
 
 	go func(done chan bool) {
 		evt, _, _ := mockEvent(1)
-		swn.GrpcServer.Bus.EventDownstream <- evt
+		swn.EventIO.Downstream <- evt
 		done <- true
 	}(done)
 
@@ -149,7 +150,7 @@ func TestPassEventToNetwork(t *testing.T) {
 	require.NoError(t, err)
 
 	log.Println("waiting for event come to EventUpstream")
-	evt2 := <-getter.GrpcServer.Bus.EventUpstream
+	evt2 := <-getter.EventIO.Upstream
 	require.True(t, proto.Equal(evt, evt2))
 
 	// invalid NewMultiaddrBytes()
@@ -193,7 +194,7 @@ func TestConnPassEvent(t *testing.T) {
 	select {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Timeout: no event to getter is sent within 2 sec")
-	case evt2 := <-getter.GrpcServer.Bus.EventUpstream:
+	case evt2 := <-getter.EventIO.Upstream:
 		require.True(t, proto.Equal(evt, evt2))
 	}
 }
@@ -230,7 +231,7 @@ func TestMultipleSenders(t *testing.T) {
 			select {
 			case <-done:
 				return
-			case evt := <-getter.GrpcServer.Bus.EventUpstream:
+			case evt := <-getter.EventIO.Upstream:
 				require.NotEmpty(t, evt)
 				mu.Lock()
 				completed = append(completed, time.Now())

@@ -7,14 +7,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
-	"go.neonyx.io/go-swn/internal/swn/grpc_server"
 	"go.neonyx.io/go-swn/pkg/bus/pb"
 )
 
@@ -23,24 +21,6 @@ var (
 	ErrIncompleteStreamWrite = errors.New("incomplete stream write")
 	ErrEmptyEvent            = errors.New("empty event")
 )
-
-// Passes event to listeners, connected over grpc method
-func (s *SWN) ProduceUpstream(event *pb.Event) error {
-	select {
-	case s.GrpcServer.Bus.EventUpstream <- event:
-		return nil
-	// TODO: use sync.Pool as *time.Timer to optimize timer GC
-	case <-time.After(s.Cfg.GrpcServer.BusTimer):
-		s.GrpcServer.Bus.Lock()
-		s.GrpcServer.Bus.EventUpstreamBuf = append(s.GrpcServer.Bus.EventUpstreamBuf, event)
-		s.GrpcServer.Bus.Unlock()
-		s.Log.Sugar().Infoln("buffered event upon timeout")
-
-		go s.GrpcServer.Bus.FlushUpstreamBuffer()
-
-		return grpc_server.ErrNoLocalListener
-	}
-}
 
 // Listens for incoming requests and passes them to the network
 func (s *SWN) StartEventListening() (err error) {
@@ -61,7 +41,7 @@ func (s *SWN) StartEventListening() (err error) {
 			select {
 			case <-s.Ctx.Done():
 				return
-			case evt := <-s.GrpcServer.Bus.EventDownstream:
+			case evt := <-s.downstream:
 				s.Log.Sugar().Infof("got event to pass: %v", s.Peer.Pretty(evt))
 
 				err := s.PassEventToNetwork(evt)

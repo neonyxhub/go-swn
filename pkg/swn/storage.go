@@ -2,7 +2,7 @@ package swn
 
 import (
 	"github.com/syndtr/goleveldb/leveldb"
-	auth_pb "go.neonyx.io/go-swn/internal/swn/pb"
+	auth_pb "go.neonyx.io/go-swn/pkg/swn/pb"
 	"google.golang.org/protobuf/proto"
 )
 

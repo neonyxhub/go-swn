@@ -1,10 +1,12 @@
 syntax = "proto3";
-package bus_api.pb;
+package bus_api;
 option go_package = "go.neonyx.io/go-swn/pkg/bus/pb";
 
 import "google/protobuf/empty.proto";
 
 service SWNBus {
+	// placeholder for bidirectional streaming events and receiving events
+	rpc EventBidirect(stream Event) returns (stream Event) {};
 	// swn here is the server, which listens to events from cwn
 	rpc LocalDistributeEvents(stream Event) returns (StreamEventsResponse) {};
 	// swn here is the server, which gives events to cwn

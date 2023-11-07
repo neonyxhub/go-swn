@@ -3,18 +3,22 @@ package swn
 import (
 	"context"
 
+	"github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
-	"go.neonyx.io/go-swn/internal/ds"
-	"go.neonyx.io/go-swn/internal/ds/drivers"
-	"go.neonyx.io/go-swn/internal/swn/config"
-	"go.neonyx.io/go-swn/internal/swn/grpc_server"
-	"go.neonyx.io/go-swn/internal/swn/p2p"
+	"go.neonyx.io/go-swn/pkg/bus"
+	"go.neonyx.io/go-swn/pkg/bus/pb"
+	"go.neonyx.io/go-swn/pkg/ds"
+	"go.neonyx.io/go-swn/pkg/ds/drivers"
 	"go.neonyx.io/go-swn/pkg/logger"
+	"go.neonyx.io/go-swn/pkg/swn/config"
+	"go.neonyx.io/go-swn/pkg/swn/p2p"
+
+	"go.neonyx.io/go-swn/internal/grpcserver"
 )
 
 type Handler struct {
@@ -33,8 +37,17 @@ type SWN struct {
 	Ds    drivers.DataStore
 	DsCfg *drivers.DataStoreCfg
 
-	// gRPC server with sBus for routing i/o events
-	GrpcServer *grpc_server.GrpcServer
+	upstream   chan *pb.Event
+	downstream chan *pb.Event
+
+	EventIO  *bus.EventIO
+	EventBus bus.EventBus
+
+	// eventIO handler as message broker client
+	EventMsgBroker interface{}
+
+	// gRPC server to serve internal network commands and as eventIO fallback handler
+	GrpcServer *grpcserver.GrpcServer
 
 	// peer structure with p2p logic
 	Peer *p2p.Peer
@@ -74,6 +87,9 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		CtxCancel:     cancel,
 		AuthDeviceMap: make(map[string][]byte),
 		Log:           log,
+
+		upstream:   make(chan *pb.Event),
+		downstream: make(chan *pb.Event),
 	}
 
 	// new libp2p peer
@@ -100,8 +116,28 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		return nil, err
 	}
 
-	swn.GrpcServer = grpc_server.New(cfg, log)
-	swn.GrpcServer.Bus.PeerId = []byte(swn.ID())
+	// init eventio
+	timeout := cfg.EventBusTimer
+	swn.EventIO = bus.New(swn.upstream, swn.downstream, timeout, timeout)
+
+	if cfg.EventBus != config.EVENTBUS_EVENTIO {
+		// init internal gRPC management
+		grpcServer := grpcserver.New(cfg, swn.EventIO, log)
+		grpcServer.PeerId = []byte(swn.ID())
+		swn.GrpcServer = grpcServer
+
+		// assign gRPC as fallback if other eventbus failed to init
+		swn.EventBus = grpcServer
+
+		switch cfg.EventBus {
+		case config.EVENTBUS_NATS:
+			// TODO: implement
+			swn.EventBus = nil
+		case config.EVENTBUS_GRPC:
+		default:
+			return nil, errors.Errorf("unknown eventbus: %v", cfg.EventBus)
+		}
+	}
 
 	swn.ApplyDefaultHandlers()
 
@@ -111,7 +147,7 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 // Serves gRPC server, set p2p network stream handlers and starts event listening
 func (s *SWN) Run() error {
 	s.Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
-	if err := s.GrpcServer.Serve(s.Cfg.GrpcServer.Addr); err != nil {
+	if err := s.GrpcServer.Run(s.Cfg.GrpcServer.Addr); err != nil {
 		s.Ds.Close()
 		return err
 	}

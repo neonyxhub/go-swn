@@ -6,8 +6,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"go.neonyx.io/go-swn/internal/ds"
-	"go.neonyx.io/go-swn/internal/ds/drivers"
+
+	"go.neonyx.io/go-swn/pkg/ds"
+	"go.neonyx.io/go-swn/pkg/ds/drivers"
 )
 
 func new(t *testing.T) drivers.DataStore {

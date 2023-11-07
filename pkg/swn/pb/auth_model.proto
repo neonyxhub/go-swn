@@ -1,6 +1,6 @@
 syntax = "proto3";
 package auth_model.pb;
-option go_package = "go.neonyx.io/go-swn/internal/swn/pb";
+option go_package = "go.neonyx.io/go-swn/pkg/swn/pb";
 
 // Local SWN's device model saved in leveldb
 message DeviceAuth {

@@ -9,7 +9,8 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/stretchr/testify/require"
-	"go.neonyx.io/go-swn/internal/swn"
+
+	"go.neonyx.io/go-swn/pkg/swn"
 )
 
 func createGetterSender(t *testing.T) (*swn.SWN, *swn.SWN) {

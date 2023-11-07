@@ -8,8 +8,10 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/stretchr/testify/require"
-	neo_swn "go.neonyx.io/go-swn/internal/swn"
-	"go.neonyx.io/go-swn/internal/swn/config"
+
+	"go.neonyx.io/go-swn/pkg/swn/config"
+
+	neo_swn "go.neonyx.io/go-swn/pkg/swn"
 )
 
 func newSWN(id int, busTimer ...time.Duration) (*neo_swn.SWN, error) {
@@ -17,13 +19,14 @@ func newSWN(id int, busTimer ...time.Duration) (*neo_swn.SWN, error) {
 
 	cfg.DataStore.Path = fmt.Sprintf("mock/db/%d", id)
 	cfg.GrpcServer.Addr = fmt.Sprintf(":%d", 8090+id)
-	cfg.GrpcServer.BusTimer = 1 * time.Second
+	cfg.EventBus = config.EVENTBUS_GRPC
+	cfg.EventBusTimer = 1 * time.Second
 	cfg.P2p.ConnLimit = []int{100, 400}
 	cfg.P2p.Multiaddr = "/ip4/0.0.0.0/tcp/0"
 	cfg.Log.Dev = true
 
 	if len(busTimer) > 0 {
-		cfg.GrpcServer.BusTimer = busTimer[0]
+		cfg.EventBusTimer = busTimer[0]
 	}
 
 	opts := []libp2p.Option{}

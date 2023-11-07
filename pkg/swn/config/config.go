@@ -7,13 +7,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	EVENTBUS_EVENTIO = "eventio"
+	EVENTBUS_GRPC    = "grpc"
+	EVENTBUS_NATS    = "nats"
+)
+
 // Config structure for user-defined config.yaml
 type Config struct {
 	GrpcServer struct {
-		Addr     string        `yaml:"addr"`
-		BusTimer time.Duration `yaml:"bus_timer"`
+		Addr string `yaml:"addr"`
 	} `yaml:"grpc_server"`
-	DataStore struct {
+	EventBus      string        `yaml:"eventbus"`
+	EventBusTimer time.Duration `yaml:"eventbus_timer"`
+	DataStore     struct {
 		Path string `yaml:"path"`
 	} `yaml:"datastore"`
 	P2p struct {
@@ -40,6 +47,10 @@ func ParseConfig(data *[]byte) (*Config, error) {
 	if len(config.P2p.ConnLimit) != 2 {
 		config.P2p.ConnLimit[0] = 100
 		config.P2p.ConnLimit[1] = 400
+	}
+
+	if config.EventBus == "" {
+		config.EventBus = EVENTBUS_GRPC
 	}
 
 	return &config, nil
