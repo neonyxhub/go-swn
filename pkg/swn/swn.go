@@ -11,7 +11,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"go.neonyx.io/go-swn/pkg/bus"
-	"go.neonyx.io/go-swn/pkg/bus/pb"
 	"go.neonyx.io/go-swn/pkg/ds"
 	"go.neonyx.io/go-swn/pkg/ds/drivers"
 	"go.neonyx.io/go-swn/pkg/logger"
@@ -19,6 +18,7 @@ import (
 	"go.neonyx.io/go-swn/pkg/swn/p2p"
 
 	"go.neonyx.io/go-swn/internal/grpcserver"
+	"go.neonyx.io/go-swn/internal/natsclient"
 )
 
 type Handler struct {
@@ -37,8 +37,9 @@ type SWN struct {
 	Ds    drivers.DataStore
 	DsCfg *drivers.DataStoreCfg
 
-	upstream   chan *pb.Event
-	downstream chan *pb.Event
+	// internal channels
+	//upstream   chan *pb.Event
+	//downstream <-chan *pb.Event
 
 	EventIO  *bus.EventIO
 	EventBus bus.EventBus
@@ -88,8 +89,8 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		AuthDeviceMap: make(map[string][]byte),
 		Log:           log,
 
-		upstream:   make(chan *pb.Event),
-		downstream: make(chan *pb.Event),
+		//upstream:   make(chan *pb.Event),
+		//downstream: make(chan *pb.Event),
 	}
 
 	// new libp2p peer
@@ -116,27 +117,35 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		return nil, err
 	}
 
-	// init eventio
+	// main EventBus channels management
 	timeout := cfg.EventBusTimer
-	swn.EventIO = bus.New(swn.upstream, swn.downstream, timeout, timeout)
+	swn.EventIO = bus.New(timeout, timeout)
 
-	if cfg.EventBus != config.EVENTBUS_EVENTIO {
-		// init internal gRPC management
-		grpcServer := grpcserver.New(cfg, swn.EventIO, log)
-		grpcServer.PeerId = []byte(swn.ID())
-		swn.GrpcServer = grpcServer
+	// init internal gRPC management
+	grpcServer := grpcserver.New(cfg, swn.EventIO, log)
+	grpcServer.PeerId = []byte(swn.ID())
+	swn.GrpcServer = grpcServer
 
-		// assign gRPC as fallback if other eventbus failed to init
+	// how to handle downstreaming and upstreaming Event in p2p
+	switch cfg.EventBus {
+	case config.EVENTBUS_EVENTIO:
+		log.Info("set EvenIO eventbus")
+		swn.EventBus = swn.EventIO
+
+	case config.EVENTBUS_NATS:
+		log.Info("set NATS eventbus")
+		natsClient, err := natsclient.New(cfg.Nats.Url, swn.EventIO, log)
+		if err != nil {
+			return nil, err
+		}
+		swn.EventBus = natsClient
+
+	case config.EVENTBUS_GRPC:
+		log.Info("set gRPC eventbus")
 		swn.EventBus = grpcServer
 
-		switch cfg.EventBus {
-		case config.EVENTBUS_NATS:
-			// TODO: implement
-			swn.EventBus = nil
-		case config.EVENTBUS_GRPC:
-		default:
-			return nil, errors.Errorf("unknown eventbus: %v", cfg.EventBus)
-		}
+	default:
+		return nil, errors.Errorf("unknown eventbus: %v", cfg.EventBus)
 	}
 
 	swn.ApplyDefaultHandlers()
@@ -201,6 +210,12 @@ func (s *SWN) Stop() error {
 
 	if err := s.Ds.Close(); err != nil {
 		return err
+	}
+
+	if s.Cfg.EventBus != config.EVENTBUS_GRPC {
+		if err := s.EventBus.Stop(); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -9,36 +9,32 @@ import (
 )
 
 var (
-	ErrRecvTimeout = errors.Errorf("EventIO.Recv() timeout")
-	ErrSendTimeout = errors.Errorf("EventIO.Send() timeout")
+	ErrRecvTimeout = errors.Errorf("EventIO recv timeout")
+	ErrSendTimeout = errors.Errorf("EventIO send timeout")
 )
-
-type EventBus interface {
-	ProduceUpstream(event *pb.Event) error
-}
 
 // Generic struct to send and recv Event from channels
 type EventIO struct {
 	dnTimeout time.Duration
 	upTimeout time.Duration
 
-	// chan<- send only, <-chan recv only
-	Downstream     chan<- *pb.Event
+	Downstream     chan *pb.Event
 	Upstream       chan *pb.Event
 	UpstreamBufCnt int
 }
 
-func New(up chan *pb.Event, dn chan<- *pb.Event, dnTimeout, upTimeout time.Duration) *EventIO {
+func New(dnTimeout, upTimeout time.Duration) *EventIO {
 	return &EventIO{
-		dnTimeout:  dnTimeout,
-		upTimeout:  upTimeout,
-		Downstream: dn,
-		Upstream:   up,
+		dnTimeout: dnTimeout,
+		upTimeout: upTimeout,
+		// TODO: add buf size
+		Downstream: make(chan *pb.Event),
+		Upstream:   make(chan *pb.Event),
 	}
 }
 
 // Recv Event from client to SWN
-func (e *EventIO) Recv(ctx context.Context, event *pb.Event) error {
+func (e *EventIO) RecvDownstream(ctx context.Context, event *pb.Event) error {
 	select {
 	case <-ctx.Done():
 		return nil
@@ -47,4 +43,21 @@ func (e *EventIO) Recv(ctx context.Context, event *pb.Event) error {
 	case <-time.After(e.dnTimeout):
 		return ErrRecvTimeout
 	}
+}
+
+// Send Event SWN from client
+func (e *EventIO) SendUpstream(event *pb.Event) error {
+	select {
+	case e.Upstream <- event:
+		return nil
+	// TODO: use sync.Pool as *time.Timer to optimize timer GC
+	case <-time.After(e.upTimeout):
+		e.UpstreamBufCnt++
+		return ErrSendTimeout
+	}
+}
+
+// Nothing to stop
+func (e *EventIO) Stop() error {
+	return nil
 }

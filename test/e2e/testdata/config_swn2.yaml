@@ -1,16 +1,28 @@
 ---
+# internal SWN management and fallback option for Event streaming
 grpc_server:
   addr: :50051
+
+# remote nats server address
+nats:
+  url: nats://0.0.0.0:4222
+
+# backend to recv and send Event protobufs.
+# Note that gRPC server is still used internally for SWN management
+# options: eventio, grpc, nats
 eventbus: grpc
 eventbus_timer: 1s
+
 datastore:
   path: data/swn2
 p2p:
-  multiaddr: "/ip4/0.0.0.0/tcp/65001"
+  multiaddr: "/ip4/0.0.0.0/tcp/65000"
   conn_limit: [100, 400]
 log:
   dev: true
   out_paths:
     - stdout
+    # for an example, logs can be also written to a filepath
+    #- out.log
   err_paths:
-    - stdout
+    - stderr

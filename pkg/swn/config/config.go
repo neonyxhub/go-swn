@@ -18,6 +18,9 @@ type Config struct {
 	GrpcServer struct {
 		Addr string `yaml:"addr"`
 	} `yaml:"grpc_server"`
+	Nats struct {
+		Url string `yaml:"url"`
+	} `yaml:"nats"`
 	EventBus      string        `yaml:"eventbus"`
 	EventBusTimer time.Duration `yaml:"eventbus_timer"`
 	DataStore     struct {
@@ -50,7 +53,7 @@ func ParseConfig(data *[]byte) (*Config, error) {
 	}
 
 	if config.EventBus == "" {
-		config.EventBus = EVENTBUS_GRPC
+		config.EventBus = EVENTBUS_EVENTIO
 	}
 
 	return &config, nil

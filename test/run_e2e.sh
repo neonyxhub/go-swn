@@ -8,7 +8,7 @@ DOCKER_ARGS=${2:-}
 export RUN_WITH_PWN=$run_with_pwn
 
 run() {
-	docker-compose -f e2e/docker-compose.yml up swn1 swn2 cwn1
+	docker-compose -f e2e/docker-compose.yml up ${DOCKER_ARGS} swn1 swn2 cwn1
 }
 
 if ! docker network ls --format '{{.Name}}' | grep e2e > /dev/null;then

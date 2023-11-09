@@ -35,8 +35,8 @@ func mockEvent(i int) (*api.Event, []byte, error) {
 }
 
 func TestProduceUpstream(t *testing.T) {
-	swn, err := newSWN(1)
-	defer closeSWN(t, swn)
+	sender, err := newSWN(1)
+	defer closeSWN(t, sender)
 	require.NoError(t, err)
 
 	done := make(chan bool, 1)
@@ -55,7 +55,7 @@ func TestProduceUpstream(t *testing.T) {
 			select {
 			case <-done:
 				return
-			case event := <-swn.EventIO.Upstream:
+			case event := <-sender.EventIO.Upstream:
 				require.True(t, strings.HasPrefix(event.Lexicon.Uri, "uri-"))
 				mu.Lock()
 				completed += 1
@@ -71,7 +71,7 @@ func TestProduceUpstream(t *testing.T) {
 		go func(count int, wg *sync.WaitGroup) {
 			defer wg.Done()
 			resp, _, _ := mockEvent(count)
-			err := swn.EventBus.ProduceUpstream(resp)
+			err := sender.EventBus.SendUpstream(resp)
 			require.NoError(t, err)
 		}(i, &wg2)
 	}
@@ -87,16 +87,16 @@ func TestProduceUpstream(t *testing.T) {
 	// error case: no one listens to EventUpstream
 	for i := 0; i < 2; i++ {
 		resp, _, _ := mockEvent(1)
-		err = swn.EventBus.ProduceUpstream(resp)
+		err = sender.EventBus.SendUpstream(resp)
 		require.Error(t, err, grpcserver.ErrNoLocalListener)
 	}
 
 	// 1 buffered upstream event should be flushed
-	require.Equal(t, swn.EventIO.UpstreamBufCnt, 2)
+	require.Equal(t, sender.EventIO.UpstreamBufCnt, 2)
 
 	// bring listener back, and flush events
 	go func() {
-		<-swn.EventIO.Upstream
+		<-sender.EventIO.Upstream
 	}()
 }
 

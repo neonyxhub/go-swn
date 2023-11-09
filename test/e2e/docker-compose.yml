@@ -49,3 +49,11 @@ services:
     networks:
       - e2e
 
+  nats-server:
+    image: nats:latest
+    ports:
+      - 4222:4222
+    container_name: nats-server
+    networks:
+      - e2e
+

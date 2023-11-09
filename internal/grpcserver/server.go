@@ -35,7 +35,7 @@ type GrpcServer struct {
 	net.Listener
 
 	bus        *swnBusServer
-	EventIOPtr *bus.EventIO
+	eventIOPtr *bus.EventIO
 	Log        logger.Logger
 	Cfg        *config.Config
 	PeerId     []byte
@@ -50,7 +50,7 @@ func New(cfg *config.Config, eventIO *bus.EventIO, log logger.Logger) *GrpcServe
 
 	return &GrpcServer{
 		Server:     s,
-		EventIOPtr: eventIO,
+		eventIOPtr: eventIO,
 		Log:        log,
 		Cfg:        cfg,
 		bus:        sBus,
@@ -98,17 +98,11 @@ func (s *GrpcServer) GetPort() int {
 	return s.Listener.Addr().(*net.TCPAddr).Port
 }
 
-// Passes event to listeners, connected over grpc method
-func (s *GrpcServer) ProduceUpstream(event *pb.Event) error {
-	select {
-	case s.EventIOPtr.Upstream <- event:
-		return nil
-	// TODO: use sync.Pool as *time.Timer to optimize timer GC
-	case <-time.After(s.Cfg.EventBusTimer):
-		s.EventIOPtr.UpstreamBufCnt++
-		s.Log.Sugar().Infoln("buffered event upon timeout")
-		return ErrNoLocalListener
-	}
+// Send Event from SWN to gRPC LocalFunnelEvents call
+// Since this eventbus impl. is gRPC server, then we should receive gRPC call
+// first to actually send upstream event
+func (s *GrpcServer) SendUpstream(event *pb.Event) error {
+	return s.eventIOPtr.SendUpstream(event)
 }
 
 // TODO: add gRPC status and error handling
@@ -123,7 +117,7 @@ func (s *GrpcServer) LocalDistributeEvents(stream pb.SWNBus_LocalDistributeEvent
 		if err != nil {
 			return err
 		}
-		if err := s.EventIOPtr.Recv(stream.Context(), event); err != nil {
+		if err := s.eventIOPtr.RecvDownstream(stream.Context(), event); err != nil {
 			return err
 		}
 	}
@@ -131,14 +125,11 @@ func (s *GrpcServer) LocalDistributeEvents(stream pb.SWNBus_LocalDistributeEvent
 
 // Gets events from EventUpstream channel and passes them to local listener
 func (s *GrpcServer) LocalFunnelEvents(in *pb.ListenEventsRequest, stream pb.SWNBus_LocalFunnelEventsServer) error {
-	// upon next listener, flush upstream buffer
-	//go s.EventIOPtr.FlushUpstreamBuffer()
-
 	for {
 		select {
 		case <-stream.Context().Done():
 			return nil
-		case event := <-s.EventIOPtr.Upstream:
+		case event := <-s.eventIOPtr.Upstream:
 			if err := stream.Send(event); err != nil {
 				return err
 			}

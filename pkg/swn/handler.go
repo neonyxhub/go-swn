@@ -66,5 +66,7 @@ func (s *SWN) EventHandler(stream network.Stream) {
 
 	s.Log.Sugar().Infof("got event: %s", s.Peer.Pretty(evt))
 
-	s.EventBus.ProduceUpstream(evt)
+	if err := s.EventBus.SendUpstream(evt); err != nil {
+		s.Log.Sugar().Warnf("%v", err)
+	}
 }

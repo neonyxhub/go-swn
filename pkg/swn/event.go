@@ -41,7 +41,7 @@ func (s *SWN) StartEventListening() (err error) {
 			select {
 			case <-s.Ctx.Done():
 				return
-			case evt := <-s.downstream:
+			case evt := <-s.EventIO.Downstream:
 				s.Log.Sugar().Infof("got event to pass: %v", s.Peer.Pretty(evt))
 
 				err := s.PassEventToNetwork(evt)
