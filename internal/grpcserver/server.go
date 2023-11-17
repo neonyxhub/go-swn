@@ -59,8 +59,8 @@ func New(cfg *config.Config, eventIO *bus.EventIO, log logger.Logger) *GrpcServe
 
 // Serve serves gRPC connection on already registered services.
 // This function is blocking until server is stopped
-func (s *GrpcServer) Run(addr string) error {
-	listener, err := net.Listen("tcp", addr)
+func (s *GrpcServer) Run() error {
+	listener, err := net.Listen("tcp", s.Cfg.GrpcServer.Addr)
 	if err != nil {
 		return err
 	}

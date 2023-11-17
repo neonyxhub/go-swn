@@ -61,6 +61,5 @@ func TestNewRunStop(t *testing.T) {
 	swn, err := newSWN(1)
 	defer closeSWN(t, swn)
 	require.NoError(t, err)
-	require.NotEmpty(t, swn.GrpcServer.Listener.Addr())
 	require.NotEmpty(t, swn.Peer.Host.Network().ListenAddresses())
 }

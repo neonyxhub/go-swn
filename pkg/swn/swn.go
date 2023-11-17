@@ -37,10 +37,6 @@ type SWN struct {
 	Ds    drivers.DataStore
 	DsCfg *drivers.DataStoreCfg
 
-	// internal channels
-	//upstream   chan *pb.Event
-	//downstream <-chan *pb.Event
-
 	EventIO  *bus.EventIO
 	EventBus bus.EventBus
 
@@ -48,7 +44,7 @@ type SWN struct {
 	EventMsgBroker interface{}
 
 	// gRPC server to serve internal network commands and as eventIO fallback handler
-	GrpcServer *grpcserver.GrpcServer
+	//GrpcServer *grpcserver.GrpcServer
 
 	// peer structure with p2p logic
 	Peer *p2p.Peer
@@ -88,9 +84,6 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 		CtxCancel:     cancel,
 		AuthDeviceMap: make(map[string][]byte),
 		Log:           log,
-
-		//upstream:   make(chan *pb.Event),
-		//downstream: make(chan *pb.Event),
 	}
 
 	// new libp2p peer
@@ -121,11 +114,6 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 	timeout := cfg.EventBusTimer
 	swn.EventIO = bus.New(timeout, timeout)
 
-	// init internal gRPC management
-	grpcServer := grpcserver.New(cfg, swn.EventIO, log)
-	grpcServer.PeerId = []byte(swn.ID())
-	swn.GrpcServer = grpcServer
-
 	// how to handle downstreaming and upstreaming Event in p2p
 	switch cfg.EventBus {
 	case config.EVENTBUS_EVENTIO:
@@ -142,6 +130,10 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 
 	case config.EVENTBUS_GRPC:
 		log.Info("set gRPC eventbus")
+		// init internal gRPC management
+		grpcServer := grpcserver.New(cfg, swn.EventIO, log)
+		grpcServer.PeerId = []byte(swn.ID())
+		//swn.GrpcServer = grpcServer
 		swn.EventBus = grpcServer
 
 	default:
@@ -153,10 +145,10 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 	return &swn, nil
 }
 
-// Serves gRPC server, set p2p network stream handlers and starts event listening
+// Starts eventbus, set p2p network stream handlers and starts event listening
 func (s *SWN) Run() error {
-	s.Log.Sugar().Infof("starting gRPC server on %s", s.Cfg.GrpcServer.Addr)
-	if err := s.GrpcServer.Run(s.Cfg.GrpcServer.Addr); err != nil {
+	s.Log.Sugar().Infof("starting eventbus as %s", s.Cfg.EventBus)
+	if err := s.EventBus.Run(); err != nil {
 		s.Ds.Close()
 		return err
 	}
@@ -193,8 +185,8 @@ func (s *SWN) Stop() error {
 		}
 	}
 
-	s.Log.Sugar().Infof("stopping gRPC server on %s", s.Cfg.GrpcServer.Addr)
-	if err := s.GrpcServer.Stop(); err != nil {
+	s.Log.Sugar().Infof("stopping eventbus %s", s.Cfg.EventBus)
+	if err := s.EventBus.Stop(); err != nil {
 		return err
 	}
 

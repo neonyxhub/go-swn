@@ -57,6 +57,11 @@ func (e *EventIO) SendUpstream(event *pb.Event) error {
 	}
 }
 
+// Nothing to run
+func (e *EventIO) Run() error {
+	return nil
+}
+
 // Nothing to stop
 func (e *EventIO) Stop() error {
 	return nil

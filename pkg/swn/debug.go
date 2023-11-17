@@ -11,10 +11,10 @@ const debugYml = "test/e2e/testdata/debug.yml"
 
 // structure to be saved to debug.yml when debug mode is true
 type debugPeerInfo struct {
-	GrpcServerPort int    `yaml:"grpc_server_port"`
-	PeerIpv4       string `yaml:"peer_ipv4"`
-	PeerId         string `yaml:"peer_id"`
-	TransportPort  string `yaml:"transport_port"`
+	//GrpcServerPort int    `yaml:"grpc_server_port"`
+	PeerIpv4      string `yaml:"peer_ipv4"`
+	PeerId        string `yaml:"peer_id"`
+	TransportPort string `yaml:"transport_port"`
 }
 
 type debugPeers struct {
@@ -28,14 +28,14 @@ func (s *SWN) DebugSavePeerInfo() error {
 	}
 
 	peer := debugPeerInfo{
-		GrpcServerPort: s.GrpcServer.GetPort(),
-		PeerIpv4:       s.Peer.GetIpv4(),
-		PeerId:         s.ID().String(),
-		TransportPort:  port,
+		//GrpcServerPort: s.GrpcServer.GetPort(),
+		PeerIpv4:      s.Peer.GetIpv4(),
+		PeerId:        s.ID().String(),
+		TransportPort: port,
 	}
 
 	s.Log.Info("saving debug info",
-		zap.Int("gRPC_port", peer.GrpcServerPort),
+		//zap.Int("gRPC_port", peer.GrpcServerPort),
 		zap.String("gRPC IPv4", peer.PeerIpv4),
 		zap.String("peerId", peer.PeerId),
 		zap.String("peer tcp port", peer.TransportPort),

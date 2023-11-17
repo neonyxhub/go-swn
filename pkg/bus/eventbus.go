@@ -12,5 +12,6 @@ import (
 // called if no pre-processing is required
 type EventBus interface {
 	SendUpstream(event *pb.Event) error
+	Run() error
 	Stop() error
 }

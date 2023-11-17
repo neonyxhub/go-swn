@@ -23,12 +23,11 @@ var (
 )
 
 type NatsClient struct {
-	nc         *nats.Conn
+	*nats.Conn
+
 	eventIOPtr *bus.EventIO
-
-	Subs []*nats.Subscription
-
-	Log logger.Logger
+	subs       []*nats.Subscription
+	log        logger.Logger
 }
 
 func New(url string, eventIO *bus.EventIO, logger logger.Logger) (*NatsClient, error) {
@@ -41,35 +40,39 @@ func New(url string, eventIO *bus.EventIO, logger logger.Logger) (*NatsClient, e
 	//nats.NewEncodedConn(nc, nats.JSON_ENCODER)
 
 	natsClient := &NatsClient{
-		nc:         nc,
+		Conn:       nc,
 		eventIOPtr: eventIO,
-		Log:        logger,
+		log:        logger,
 	}
-
-	sub, err := nc.Subscribe(TOPIC_MODULE_RESP, natsClient.ModuleRespHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	natsClient.Subs = append(natsClient.Subs, sub)
 
 	return natsClient, nil
 }
 
+func (n *NatsClient) Run() error {
+	sub, err := n.Subscribe(TOPIC_MODULE_RESP, n.ModuleRespHandler)
+	if err != nil {
+		return err
+	}
+
+	n.subs = append(n.subs, sub)
+
+	return nil
+}
+
 // Subscribe async for modules response subject and pass over p2p network
 func (n *NatsClient) ModuleRespHandler(m *nats.Msg) {
-	n.Log.Sugar().Infof("received module.resp: %v", m)
+	n.log.Sugar().Infof("received module.resp: %v", m)
 
 	event := &pb.Event{}
 	if err := proto.Unmarshal(m.Data, event); err != nil {
-		n.Log.Sugar().Errorf("failed to unmarshal module.resp: %v", err)
+		n.log.Sugar().Errorf("failed to unmarshal module.resp: %v", err)
 		return
 	}
 
-	n.Log.Sugar().Infof("received module.resp: %v", m)
+	n.log.Sugar().Infof("received module.resp: %v", m)
 
 	if err := n.eventIOPtr.RecvDownstream(context.Background(), event); err != nil {
-		n.Log.Sugar().Errorf("failed to send to SWN upon module.resp: %v", m)
+		n.log.Sugar().Errorf("failed to send to SWN upon module.resp: %v", m)
 	}
 }
 
@@ -91,15 +94,15 @@ func (n *NatsClient) SendUpstream(event *pb.Event) error {
 		return err
 	}
 
-	n.Log.Sugar().Infof("publishing Event to %s", moduleSubj)
+	n.log.Sugar().Infof("publishing Event to %s", moduleSubj)
 
-	return n.nc.Publish(moduleSubj, eventRaw)
+	return n.Publish(moduleSubj, eventRaw)
 }
 
 func (n *NatsClient) Stop() error {
-	n.Log.Info("unsubscribing from NATS")
+	n.log.Info("unsubscribing from NATS")
 
-	for _, sub := range n.Subs {
+	for _, sub := range n.subs {
 		if err := sub.Unsubscribe(); err != nil {
 			return err
 		}
