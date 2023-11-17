@@ -22,7 +22,7 @@ func newSWN(id int, busTimer ...time.Duration) (*neo_swn.SWN, error) {
 	cfg.EventBus = config.EVENTBUS_GRPC
 	cfg.EventBusTimer = 1 * time.Second
 	cfg.P2p.ConnLimit = []int{100, 400}
-	cfg.P2p.Multiaddr = "/ip4/0.0.0.0/tcp/0"
+	cfg.P2p.Multiaddr = []string{"/ip4/0.0.0.0/tcp/0"}
 	cfg.Log.Dev = true
 
 	if len(busTimer) > 0 {

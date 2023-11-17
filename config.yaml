@@ -16,7 +16,10 @@ eventbus_timer: 1s
 datastore:
   path: data
 p2p:
-  multiaddr: "/ip4/0.0.0.0/tcp/65000"
+  # list of MAs for supporting multiple protocols
+  multiaddr:
+    - /ip4/0.0.0.0/tcp/65000
+    - /ip4/0.0.0.0/udp/65000/quic-v1
   conn_limit: [100, 400]
 log:
   dev: true

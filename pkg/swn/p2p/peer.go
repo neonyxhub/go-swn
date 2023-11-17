@@ -44,12 +44,16 @@ func New(cfg *config.Config, log logger.Logger, opts ...libp2p.Option) (*Peer, e
 	}
 
 	// prepare multiaddr
-	if cfg.P2p.Multiaddr != "" {
-		maddr, err := multiaddr.NewMultiaddr(cfg.P2p.Multiaddr)
-		if err != nil {
-			return nil, err
+	if len(cfg.P2p.Multiaddr) > 0 {
+		maddrs := []multiaddr.Multiaddr{}
+		for _, maStr := range cfg.P2p.Multiaddr {
+			maddr, err := multiaddr.NewMultiaddr(maStr)
+			if err != nil {
+				return nil, err
+			}
+			maddrs = append(maddrs, maddr)
 		}
-		opts = append(opts, libp2p.ListenAddrs(maddr))
+		opts = append(opts, libp2p.ListenAddrs(maddrs...))
 	}
 
 	// keypair for sign & verify

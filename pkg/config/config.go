@@ -27,8 +27,8 @@ type Config struct {
 		Path string `yaml:"path"`
 	} `yaml:"datastore"`
 	P2p struct {
-		Multiaddr string `yaml:"multiaddr"`
-		ConnLimit []int  `yaml:"conn_limit"`
+		Multiaddr []string `yaml:"multiaddr"`
+		ConnLimit []int    `yaml:"conn_limit"`
 	} `yaml:"p2p"`
 	Log struct {
 		Dev      bool     `yaml:"dev"`
