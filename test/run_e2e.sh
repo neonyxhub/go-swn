@@ -1,15 +1,5 @@
 #!/bin/bash
-
-#set -e
-
-run_with_pwn=${1:-cwn}
-DOCKER_ARGS=${2:-}
-
-export RUN_WITH_PWN=$run_with_pwn
-
-run() {
-	docker-compose -f e2e/docker-compose.yml up ${DOCKER_ARGS} swn1 swn2 cwn1
-}
+set -e
 
 if ! docker network ls --format '{{.Name}}' | grep e2e > /dev/null;then
 	echo "[*] creating a e2e docker network"
@@ -19,9 +9,9 @@ fi
 # cleanup on prev. run
 rm -f e2e/testdata/debug.yml
 echo "peers: []" > e2e/testdata/debug.yml
-docker rm cwn1 swn1 swn2
+docker rm e2e-swn-provider e2e-nats-server
 
-echo "[*] running swn1 swn2"
+echo "[*] running cwn1"
 run &
 
 while true; do
