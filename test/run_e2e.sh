@@ -11,20 +11,8 @@ rm -f e2e/testdata/debug.yml
 echo "peers: []" > e2e/testdata/debug.yml
 docker rm e2e-swn-provider e2e-nats-server
 
-echo "[*] running cwn1"
-run &
-
-while true; do
-	status=$(docker-compose -f e2e/docker-compose.yml ps cwn1 | grep 'Exit' || true)
-	if [[ ! -z "$status" ]]; then
-		echo "cwn1 has exited, stopping other services..."
-		docker-compose -f e2e/docker-compose.yml stop swn1 swn2
-		break
-	fi
-	echo "[*] waiting for cwn1 to exit..."
-	sleep 1
-done
+# run
 
 rm -f e2e/testdata/debug.yml
-docker rm cwn1 swn1 swn2
+docker rm cwn1
 docker network rm e2e
