@@ -9,7 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/stretchr/testify/require"
 
-	"go.neonyx.io/go-swn/pkg/swn/config"
+	"go.neonyx.io/go-swn/pkg/config"
 
 	neo_swn "go.neonyx.io/go-swn/pkg/swn"
 )

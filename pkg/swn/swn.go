@@ -11,10 +11,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"go.neonyx.io/go-swn/pkg/bus"
+	"go.neonyx.io/go-swn/pkg/config"
 	"go.neonyx.io/go-swn/pkg/ds"
 	"go.neonyx.io/go-swn/pkg/ds/drivers"
 	"go.neonyx.io/go-swn/pkg/logger"
-	"go.neonyx.io/go-swn/pkg/swn/config"
 	"go.neonyx.io/go-swn/pkg/swn/p2p"
 
 	"go.neonyx.io/go-swn/internal/grpcserver"

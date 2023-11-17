@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"go.neonyx.io/go-swn/pkg/swn/config"
+	"go.neonyx.io/go-swn/pkg/config"
 )
 
 func TestParseConfigYaml(t *testing.T) {

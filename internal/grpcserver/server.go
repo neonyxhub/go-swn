@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"go.neonyx.io/go-swn/pkg/bus"
+	"go.neonyx.io/go-swn/pkg/config"
 	"go.neonyx.io/go-swn/pkg/logger"
-	"go.neonyx.io/go-swn/pkg/swn/config"
 
 	"go.neonyx.io/go-swn/pkg/bus/pb"
 )

@@ -23,8 +23,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"go.neonyx.io/go-swn/pkg/bus/pb"
+	"go.neonyx.io/go-swn/pkg/config"
 	"go.neonyx.io/go-swn/pkg/logger"
-	"go.neonyx.io/go-swn/pkg/swn/config"
 )
 
 var (
