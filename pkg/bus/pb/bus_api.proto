@@ -21,11 +21,6 @@ enum EventType {
 	ERR = 2;
 }
 
-enum AccountAuthType {
-	SIG = 0;
-	JWT = 1;
-}
-
 message Destination {
 	bytes Addr = 1;
 }
@@ -34,18 +29,13 @@ message LexiconUri {
 	string Uri = 1;
 }
 
-message AccountAuth {
-	AccountAuthType Type = 1;
-	bytes Token = 2;
-}
-
 message Event {
 	uint64 Id = 1;
 	EventType Type = 2;
 	Destination Dest = 3;
 	LexiconUri Lexicon = 4;
 	bytes Data = 5;
-	AccountAuth AccountAuth = 6;
+	bytes Auth = 6;
 	uint64 CreatedTimestamp = 7;
 }
 
