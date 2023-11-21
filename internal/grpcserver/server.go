@@ -98,6 +98,10 @@ func (s *GrpcServer) GetPort() int {
 	return s.Listener.Addr().(*net.TCPAddr).Port
 }
 
+func (s *GrpcServer) RecvDownstream(ctx context.Context, event *pb.Event) error {
+	return nil
+}
+
 // Send Event from SWN to gRPC LocalFunnelEvents call
 // Since this eventbus impl. is gRPC server, then we should receive gRPC call
 // first to actually send upstream event

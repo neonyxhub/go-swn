@@ -1,6 +1,8 @@
 package bus
 
 import (
+	"context"
+
 	"go.neonyx.io/go-swn/pkg/bus/pb"
 )
 
@@ -11,6 +13,7 @@ import (
 // EventIO implementation of SendUpstream methods can be
 // called if no pre-processing is required
 type EventBus interface {
+	RecvDownstream(ctx context.Context, event *pb.Event) error
 	SendUpstream(event *pb.Event) error
 	Run() error
 	Stop() error

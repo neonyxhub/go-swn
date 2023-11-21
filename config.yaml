@@ -1,16 +1,15 @@
 ---
-# internal SWN management and fallback option for Event streaming
+# eventbus: gRPC streaming
 grpc_server:
   addr: :50051
 
-# remote nats server address
+# eventbus: nats msg broker
 nats:
   url: nats://0.0.0.0:4222
 
 # backend to recv and send Event protobufs.
-# Note that gRPC server is still used internally for SWN management
 # options: eventio, grpc, nats
-eventbus: grpc
+eventbus: nats
 eventbus_timer: 1s
 
 datastore:

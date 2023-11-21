@@ -40,9 +40,6 @@ type SWN struct {
 	EventIO  *bus.EventIO
 	EventBus bus.EventBus
 
-	// eventIO handler as message broker client
-	EventMsgBroker interface{}
-
 	// gRPC server to serve internal network commands and as eventIO fallback handler
 	//GrpcServer *grpcserver.GrpcServer
 
@@ -204,10 +201,8 @@ func (s *SWN) Stop() error {
 		return err
 	}
 
-	if s.Cfg.EventBus != config.EVENTBUS_GRPC {
-		if err := s.EventBus.Stop(); err != nil {
-			return err
-		}
+	if err := s.EventBus.Stop(); err != nil {
+		return err
 	}
 
 	return nil

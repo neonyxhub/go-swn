@@ -76,6 +76,10 @@ func (n *NatsClient) ModuleRespHandler(m *nats.Msg) {
 	}
 }
 
+func (n *NatsClient) RecvDownstream(ctx context.Context, event *pb.Event) error {
+	return nil
+}
+
 // Publish Event to module
 func (n *NatsClient) SendUpstream(event *pb.Event) error {
 	var moduleSubj string
