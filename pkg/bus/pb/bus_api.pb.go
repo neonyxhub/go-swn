@@ -87,7 +87,7 @@ type Event struct {
 	Data []byte `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
 	// authentication (jwt, oauth etc.)
 	Auth []byte `protobuf:"bytes,6,opt,name=auth,proto3" json:"auth,omitempty"`
-	// event created unix timestamp
+	// event created unix timestamp (milliseconds suggested)
 	CreatedTs int64 `protobuf:"varint,7,opt,name=created_ts,json=createdTs,proto3" json:"created_ts,omitempty"`
 }
 

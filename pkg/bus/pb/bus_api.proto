@@ -34,7 +34,7 @@ message Event {
 	bytes data = 5;
 	// authentication (jwt, oauth etc.)
 	bytes auth = 6;
-	// event created unix timestamp
+	// event created unix timestamp (milliseconds suggested)
 	int64 created_ts = 7;
 }
 
