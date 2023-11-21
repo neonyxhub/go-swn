@@ -1,14 +1,28 @@
 ---
+# eventbus: gRPC streaming
 grpc_server:
   addr: :50051
-  bus_timer: 1s
+
+# eventbus: nats msg broker
+nats:
+  url: nats://0.0.0.0:4222
+
+# backend to recv and send Event protobufs.
+# options: eventio, grpc, nats
+eventbus: nats
+eventbus_timer: 1s
+
 datastore:
   path: data
 p2p:
-  multiaddr: "/ip4/0.0.0.0/tcp/65000"
+  # list of MAs for supporting multiple protocols
+  multiaddr:
+    - /ip4/0.0.0.0/tcp/65000
+    - /ip4/0.0.0.0/udp/65000/quic-v1
   conn_limit: [100, 400]
 log:
   dev: true
+  name: swn
   out_paths:
     - stdout
     # for an example, logs can be also written to a filepath

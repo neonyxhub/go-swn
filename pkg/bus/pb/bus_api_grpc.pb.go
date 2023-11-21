@@ -20,15 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	SWNBus_LocalDistributeEvents_FullMethodName = "/bus_api.pb.SWNBus/LocalDistributeEvents"
-	SWNBus_LocalFunnelEvents_FullMethodName     = "/bus_api.pb.SWNBus/LocalFunnelEvents"
-	SWNBus_GetPeerInfo_FullMethodName           = "/bus_api.pb.SWNBus/GetPeerInfo"
+	SWNBus_EventBidirect_FullMethodName         = "/bus_api.SWNBus/EventBidirect"
+	SWNBus_LocalDistributeEvents_FullMethodName = "/bus_api.SWNBus/LocalDistributeEvents"
+	SWNBus_LocalFunnelEvents_FullMethodName     = "/bus_api.SWNBus/LocalFunnelEvents"
+	SWNBus_GetPeerInfo_FullMethodName           = "/bus_api.SWNBus/GetPeerInfo"
 )
 
 // SWNBusClient is the client API for SWNBus service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SWNBusClient interface {
+	// placeholder for bidirectional streaming events and receiving events
+	EventBidirect(ctx context.Context, opts ...grpc.CallOption) (SWNBus_EventBidirectClient, error)
 	// swn here is the server, which listens to events from cwn
 	LocalDistributeEvents(ctx context.Context, opts ...grpc.CallOption) (SWNBus_LocalDistributeEventsClient, error)
 	// swn here is the server, which gives events to cwn
@@ -45,8 +48,39 @@ func NewSWNBusClient(cc grpc.ClientConnInterface) SWNBusClient {
 	return &sWNBusClient{cc}
 }
 
+func (c *sWNBusClient) EventBidirect(ctx context.Context, opts ...grpc.CallOption) (SWNBus_EventBidirectClient, error) {
+	stream, err := c.cc.NewStream(ctx, &SWNBus_ServiceDesc.Streams[0], SWNBus_EventBidirect_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &sWNBusEventBidirectClient{stream}
+	return x, nil
+}
+
+type SWNBus_EventBidirectClient interface {
+	Send(*Event) error
+	Recv() (*Event, error)
+	grpc.ClientStream
+}
+
+type sWNBusEventBidirectClient struct {
+	grpc.ClientStream
+}
+
+func (x *sWNBusEventBidirectClient) Send(m *Event) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *sWNBusEventBidirectClient) Recv() (*Event, error) {
+	m := new(Event)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *sWNBusClient) LocalDistributeEvents(ctx context.Context, opts ...grpc.CallOption) (SWNBus_LocalDistributeEventsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &SWNBus_ServiceDesc.Streams[0], SWNBus_LocalDistributeEvents_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &SWNBus_ServiceDesc.Streams[1], SWNBus_LocalDistributeEvents_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +114,7 @@ func (x *sWNBusLocalDistributeEventsClient) CloseAndRecv() (*StreamEventsRespons
 }
 
 func (c *sWNBusClient) LocalFunnelEvents(ctx context.Context, in *ListenEventsRequest, opts ...grpc.CallOption) (SWNBus_LocalFunnelEventsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &SWNBus_ServiceDesc.Streams[1], SWNBus_LocalFunnelEvents_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &SWNBus_ServiceDesc.Streams[2], SWNBus_LocalFunnelEvents_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +158,8 @@ func (c *sWNBusClient) GetPeerInfo(ctx context.Context, in *empty.Empty, opts ..
 // All implementations must embed UnimplementedSWNBusServer
 // for forward compatibility
 type SWNBusServer interface {
+	// placeholder for bidirectional streaming events and receiving events
+	EventBidirect(SWNBus_EventBidirectServer) error
 	// swn here is the server, which listens to events from cwn
 	LocalDistributeEvents(SWNBus_LocalDistributeEventsServer) error
 	// swn here is the server, which gives events to cwn
@@ -137,6 +173,9 @@ type SWNBusServer interface {
 type UnimplementedSWNBusServer struct {
 }
 
+func (UnimplementedSWNBusServer) EventBidirect(SWNBus_EventBidirectServer) error {
+	return status.Errorf(codes.Unimplemented, "method EventBidirect not implemented")
+}
 func (UnimplementedSWNBusServer) LocalDistributeEvents(SWNBus_LocalDistributeEventsServer) error {
 	return status.Errorf(codes.Unimplemented, "method LocalDistributeEvents not implemented")
 }
@@ -157,6 +196,32 @@ type UnsafeSWNBusServer interface {
 
 func RegisterSWNBusServer(s grpc.ServiceRegistrar, srv SWNBusServer) {
 	s.RegisterService(&SWNBus_ServiceDesc, srv)
+}
+
+func _SWNBus_EventBidirect_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(SWNBusServer).EventBidirect(&sWNBusEventBidirectServer{stream})
+}
+
+type SWNBus_EventBidirectServer interface {
+	Send(*Event) error
+	Recv() (*Event, error)
+	grpc.ServerStream
+}
+
+type sWNBusEventBidirectServer struct {
+	grpc.ServerStream
+}
+
+func (x *sWNBusEventBidirectServer) Send(m *Event) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *sWNBusEventBidirectServer) Recv() (*Event, error) {
+	m := new(Event)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func _SWNBus_LocalDistributeEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -228,7 +293,7 @@ func _SWNBus_GetPeerInfo_Handler(srv interface{}, ctx context.Context, dec func(
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var SWNBus_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "bus_api.pb.SWNBus",
+	ServiceName: "bus_api.SWNBus",
 	HandlerType: (*SWNBusServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -237,6 +302,12 @@ var SWNBus_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "EventBidirect",
+			Handler:       _SWNBus_EventBidirect_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
 		{
 			StreamName:    "LocalDistributeEvents",
 			Handler:       _SWNBus_LocalDistributeEvents_Handler,

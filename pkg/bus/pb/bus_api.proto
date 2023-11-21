@@ -1,10 +1,12 @@
 syntax = "proto3";
-package bus_api.pb;
+package bus_api;
 option go_package = "go.neonyx.io/go-swn/pkg/bus/pb";
 
 import "google/protobuf/empty.proto";
 
 service SWNBus {
+	// placeholder for bidirectional streaming events and receiving events
+	rpc EventBidirect(stream Event) returns (stream Event) {};
 	// swn here is the server, which listens to events from cwn
 	rpc LocalDistributeEvents(stream Event) returns (StreamEventsResponse) {};
 	// swn here is the server, which gives events to cwn
@@ -19,34 +21,25 @@ enum EventType {
 	ERR = 2;
 }
 
-enum AccountAuthType {
-	SIG = 0;
-}
-
-message Destination {
-	bytes Addr = 1;
-}
-
-message LexiconUri {
-	string Uri = 1;
-}
-
-message AccountAuth {
-    AccountAuthType Type = 1;
-    bytes Token = 2;
-}
-
 message Event {
-	uint64 Id = 1;
-	EventType Type = 2;
-	Destination Dest = 3;
-	LexiconUri Lexicon = 4;
-	bytes Data = 5;
-	AccountAuth AccountAuth = 6;
+	// google UUIDv4
+	string id = 1;
+	// event type to distinguish receiver's behaviour upon req, resp and err
+	EventType type = 2;
+	// destination multiaddress of remote peer
+	bytes dest = 3;
+	// event model data lexicon to distinguish model data for receiver
+	string lexicon_uri = 4;
+	// event serialized model data
+	bytes data = 5;
+	// authentication (jwt, oauth etc.)
+	bytes auth = 6;
+	// event created unix timestamp (milliseconds suggested)
+	int64 created_ts = 7;
 }
 
 message Peer {
-	bytes Id = 1;
+	bytes id = 1;
 }
 
 // could be implemented in future

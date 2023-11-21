@@ -5,47 +5,26 @@ networks:
     name: e2e
 
 services:
-  cwn1:
-    build:
-      context: cwn
-      dockerfile: Dockerfile.cwn1
-    volumes:
-      - ./cwn:/app
-      - ./testdata:/testdata
-    container_name: cwn1
-    depends_on:
-      - swn1
-      - swn2
-    networks:
-      - e2e
-    environment:
-      - RUN_WITH_PWN=${RUN_WITH_PWN}
-
-  swn1:
+  # TODO: need to implement swn with nats server
+  swn-provider:
     build:
       context: ../../
       dockerfile: Dockerfile
     ports:
-      - 8081:8081
+      - 50052:50051
       - 65001:65001
     volumes:
       - ./testdata:/app/test/e2e/testdata
-    container_name: swn1
+    container_name: e2e-swn-provider
     command: -config test/e2e/testdata/config_swn1.yaml -debug=true
     networks:
       - e2e
 
-  swn2:
-    build:
-      context: ../../
-      dockerfile: Dockerfile
+  nats-server:
+    image: nats:latest
     ports:
-      - 8082:8082
-      - 65002:65002
-    volumes:
-      - ./testdata:/app/test/e2e/testdata
-    container_name: swn2
-    command: -config test/e2e/testdata/config_swn2.yaml -debug=true
+      - 4222:4222
+    container_name: e2e-nats-server
     networks:
       - e2e
 

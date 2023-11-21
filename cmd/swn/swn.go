@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	neo_swn "go.neonyx.io/go-swn/internal/swn"
-	neo_cfg "go.neonyx.io/go-swn/internal/swn/config"
+	neo_cfg "go.neonyx.io/go-swn/pkg/config"
+	neo_swn "go.neonyx.io/go-swn/pkg/swn"
 )
 
 func main() {

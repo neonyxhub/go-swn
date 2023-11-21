@@ -11,7 +11,7 @@ print_status() {
 	printf "* %-40s %s\n" "$component" "$status"
 }
 
-tools=( golangci-lint docker go protoc protoc-gen-go protoc-gen-go-grpc )
+tools=( golangci-lint docker go protoc protoc-gen-go protoc-gen-go-grpc mockgen )
 
 for tool in "${tools[@]}"; do
 	if ! which $tool > /dev/null; then

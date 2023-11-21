@@ -1,5 +1,5 @@
 .PHONY: init configure add-commit-hook dev build-release test test_cov lint \
-	pb_pkg_gen pb_internal_gen pb_model_gen pb_service_gen
+	pb_pkg_gen pb_internal_gen pb_model_gen pb_service_gen pb_pkg_mock_gen
 
 PKG_PATH=go.neonyx.io
 PROJECT=go-swn
@@ -59,6 +59,11 @@ include $(DEPLOYMENT_DIR)/proto.mk
 
 # generate all pkg/* models and services .proto files
 pb_pkg_gen: pb_pkg_model_gen pb_pkg_service_gen
+
+pb_pkg_mock_gen:
+	mockgen -source=pkg/bus/pb/bus_api_grpc.pb.go \
+		-destination=pkg/bus/pb/bus_api_mock.go \
+		-package=pb
 
 # generate all internal/* models and services .proto files
 pb_internal_gen: pb_internal_model_gen pb_internal_service_gen

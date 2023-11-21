@@ -56,7 +56,3 @@ func GetNonce() ([]byte, error) {
 	}
 	return nonce, nil
 }
-
-func hashNonce(nonce []byte) {
-
-}
