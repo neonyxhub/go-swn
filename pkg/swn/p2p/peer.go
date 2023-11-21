@@ -58,6 +58,10 @@ func New(cfg *config.Config, log logger.Logger, opts ...libp2p.Option) (*Peer, e
 
 	// keypair for sign & verify
 	peerPrivKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+
 	opts = append(opts, libp2p.Identity(peerPrivKey))
 
 	// transport data between peers is encrypted with TLS
@@ -160,7 +164,9 @@ func (p *Peer) StreamOverConn(ctx context.Context, conn network.Conn, protos ...
 
 	selected, err := mstream.SelectOneOf(protos, s)
 	if err != nil {
-		s.Reset()
+		if err := s.Reset(); err != nil {
+			return nil, err
+		}
 		return nil, ErrNegotioateProtocol(err)
 	}
 

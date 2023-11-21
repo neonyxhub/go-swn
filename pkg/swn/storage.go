@@ -25,7 +25,10 @@ func (s *SWN) GetDeviceAuth() error {
 		return err
 	}
 
-	s.Device.ParsePrivKeyRaw(deviceAuth.PrivKey)
+	if err := s.Device.ParsePrivKeyRaw(deviceAuth.PrivKey); err != nil {
+		s.Log.Sugar().Errorln(err)
+		return nil
+	}
 	s.Device.PubKey = &s.Device.PrivKey.PublicKey
 
 	return nil

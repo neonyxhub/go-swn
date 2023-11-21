@@ -163,6 +163,7 @@ func TestPassEventToNetwork(t *testing.T) {
 	evt, _, _ = mockEvent(1)
 	evt.Dest.Addr = []byte{0xbe, 0xef}
 	err = sender.PassEventToNetwork(evt)
+	require.NoError(t, err)
 	require.Error(t, peer.ErrInvalidAddr)
 
 	// ErrNoExistingConnection
@@ -178,7 +179,8 @@ func TestConnPassEvent(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender)
 
-	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	err = sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	require.NoError(t, err)
 
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
 	require.Equal(t, 1, len(conns))
@@ -212,8 +214,10 @@ func TestMultipleSenders(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender2)
 
-	sender1.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
-	sender2.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	err = sender1.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	require.NoError(t, err)
+	err = sender2.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	require.NoError(t, err)
 
 	// manually authorize
 	getter.AuthDeviceMap[sender1.ID().String()] = sender1.Device.Id

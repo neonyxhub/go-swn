@@ -37,11 +37,11 @@ type SWN struct {
 	Ds    drivers.DataStore
 	DsCfg *drivers.DataStoreCfg
 
-	EventIO  *bus.EventIO
+	// implementation for sending and receiving Event in p2p network
 	EventBus bus.EventBus
 
-	// gRPC server to serve internal network commands and as eventIO fallback handler
-	//GrpcServer *grpcserver.GrpcServer
+	// internal main structure for event IO channels
+	EventIO *bus.EventIO
 
 	// peer structure with p2p logic
 	Peer *p2p.Peer
@@ -63,6 +63,7 @@ type SWN struct {
 // New creates an instance of SWN with libp2p peer, datastore, gRPC server, P2PBus
 func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 	logCfg := &logger.LoggerCfg{
+		Name:     cfg.Log.Name,
 		Dev:      cfg.Log.Dev,
 		OutPaths: cfg.Log.OutPaths,
 		ErrPaths: cfg.Log.ErrPaths,
@@ -146,7 +147,9 @@ func New(cfg *config.Config, opts ...libp2p.Option) (*SWN, error) {
 func (s *SWN) Run() error {
 	s.Log.Sugar().Infof("starting eventbus as %s", s.Cfg.EventBus)
 	if err := s.EventBus.Run(); err != nil {
-		s.Ds.Close()
+		if err := s.Ds.Close(); err != nil {
+			return err
+		}
 		return err
 	}
 
@@ -160,7 +163,9 @@ func (s *SWN) Run() error {
 	}
 
 	if err := s.StartEventListening(); err != nil {
-		s.Ds.Close()
+		if err := s.Ds.Close(); err != nil {
+			return err
+		}
 		return err
 	}
 

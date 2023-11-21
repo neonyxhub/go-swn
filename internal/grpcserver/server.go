@@ -99,6 +99,9 @@ func (s *GrpcServer) GetPort() int {
 }
 
 func (s *GrpcServer) RecvDownstream(ctx context.Context, event *pb.Event) error {
+	if err := s.eventIOPtr.RecvDownstream(ctx, event); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -121,7 +124,7 @@ func (s *GrpcServer) LocalDistributeEvents(stream pb.SWNBus_LocalDistributeEvent
 		if err != nil {
 			return err
 		}
-		if err := s.eventIOPtr.RecvDownstream(stream.Context(), event); err != nil {
+		if err := s.RecvDownstream(stream.Context(), event); err != nil {
 			return err
 		}
 	}

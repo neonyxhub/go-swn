@@ -36,7 +36,9 @@ func (s *SWN) AuthHandler(stream network.Stream) {
 		s.Log.Sugar().Warnf("closing stream for failed auth stream: remote peer %v", stream.Conn().RemotePeer())
 	} else if err != nil {
 		s.Log.Sugar().Errorln(err)
-		stream.Reset()
+		if err := stream.Reset(); err != nil {
+			s.Log.Sugar().Errorln(err)
+		}
 		return
 	}
 
@@ -51,7 +53,9 @@ func (s *SWN) EventHandler(stream network.Stream) {
 
 	if !s.IsAuthenticated(stream.Conn()) {
 		s.Log.Sugar().Warnf("closing stream for unauthorized connection: %s", stream.Conn().ID())
-		stream.Close()
+		if err := stream.Close(); err != nil {
+			s.Log.Sugar().Errorln(err)
+		}
 		return
 	}
 
@@ -60,7 +64,9 @@ func (s *SWN) EventHandler(stream network.Stream) {
 	evt, err := UnpackEvent(rw)
 	if err != nil {
 		s.Log.Sugar().Errorf("failed to UnpackEvent: %v", err)
-		stream.Reset()
+		if err := stream.Reset(); err != nil {
+			s.Log.Sugar().Errorln(err)
+		}
 		return
 	}
 

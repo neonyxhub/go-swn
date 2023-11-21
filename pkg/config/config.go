@@ -31,6 +31,7 @@ type Config struct {
 		ConnLimit []int    `yaml:"conn_limit"`
 	} `yaml:"p2p"`
 	Log struct {
+		Name     string   `yaml:"name"`
 		Dev      bool     `yaml:"dev"`
 		OutPaths []string `yaml:"out_paths"`
 		ErrPaths []string `yaml:"err_paths"`

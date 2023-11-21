@@ -168,7 +168,8 @@ func (s *SWN) ConnPassEvent(ctx context.Context, evt *pb.Event, conn network.Con
 	}
 
 	n, err := stream.Write(rawEvt)
-	if n != len(rawEvt) {
+	if n != len(rawEvt) || err != nil {
+		s.Log.Sugar().Errorln(err)
 		return ErrIncompleteStreamWrite
 	}
 

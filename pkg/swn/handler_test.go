@@ -40,7 +40,8 @@ func TestEventHandler(t *testing.T) {
 	raw, err := swn.PackEvent(evt)
 	require.NoError(t, err)
 
-	s.Write(raw)
+	_, err = s.Write(raw)
+	require.NoError(t, err)
 
 	writeLen, err := s.Write(raw)
 	require.NoError(t, err)
@@ -64,14 +65,18 @@ func TestEventHandler2(t *testing.T) {
 	// manually authorize
 	getter.AuthDeviceMap[sender.ID().String()] = sender.Device.Id
 
-	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	err = sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	require.NoError(t, err)
+
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
 	require.Equal(t, len(conns), 1)
+
 	stream, err := conns[0].NewStream(context.Background())
 	require.NoError(t, err)
 
 	w := bufio.NewWriter(stream)
-	w.Write([]byte{0x0a, 0x00})
+	_, err = w.Write([]byte{0x0a, 0x00})
+	require.NoError(t, err)
 
 	go sender.EventHandler(stream)
 
@@ -92,7 +97,9 @@ func TestAuthHandler(t *testing.T) {
 	require.NoError(t, err)
 	defer closeSWN(t, sender)
 
-	sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	err = sender.Peer.EstablishConn(context.Background(), getter.Peer.Getp2pMA())
+	require.NoError(t, err)
+
 	conns := sender.Peer.Host.Network().ConnsToPeer(getter.ID())
 	require.Equal(t, len(conns), 1)
 

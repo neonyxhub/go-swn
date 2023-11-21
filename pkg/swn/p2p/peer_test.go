@@ -20,13 +20,15 @@ func newPeer(t *testing.T, cfg *config.Config) *p2p.Peer {
 		ErrPaths: cfg.Log.ErrPaths,
 	}
 	log, err := logger.New(logCfg)
+	require.NoError(t, err)
 	peer, err := p2p.New(cfg, log)
 	require.NoError(t, err)
 	return peer
 }
 
 func stopPeer(t *testing.T, peer *p2p.Peer) {
-	peer.Stop()
+	err := peer.Stop()
+	require.NoError(t, err)
 	require.Empty(t, peer.Host.Network().Peers())
 }
 

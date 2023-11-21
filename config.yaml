@@ -22,6 +22,7 @@ p2p:
   conn_limit: [100, 400]
 log:
   dev: true
+  name: swn
   out_paths:
     - stdout
     # for an example, logs can be also written to a filepath

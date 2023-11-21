@@ -16,6 +16,7 @@ const (
 type Logger = *zap.Logger
 
 type LoggerCfg struct {
+	Name     string
 	Dev      bool
 	OutPaths []string
 	ErrPaths []string
@@ -85,7 +86,8 @@ func New(cfg *LoggerCfg) (*zap.Logger, error) {
 		OutputPaths:       cfg.OutPaths,
 		ErrorOutputPaths:  cfg.ErrPaths,
 		InitialFields: map[string]interface{}{
-			"pid": os.Getpid(),
+			"pid":  os.Getpid(),
+			"name": cfg.Name,
 		},
 	}
 

@@ -70,13 +70,17 @@ func (n *NatsClient) ModuleRespHandler(m *nats.Msg) {
 	}
 
 	n.log.Sugar().Infof("received module.resp: %v", m)
-
-	if err := n.eventIOPtr.RecvDownstream(context.Background(), event); err != nil {
-		n.log.Sugar().Errorf("failed to send to SWN upon module.resp: %v", m)
+	if err := n.RecvDownstream(context.Background(), event); err != nil {
+		n.log.Sugar().Errorf("failed to call RecvDownstream: %v", err)
 	}
 }
 
 func (n *NatsClient) RecvDownstream(ctx context.Context, event *pb.Event) error {
+	if err := n.eventIOPtr.RecvDownstream(ctx, event); err != nil {
+		n.log.Sugar().Errorf("failed to send to SWN upon module.resp: %v", event)
+		return err
+	}
+
 	return nil
 }
 
