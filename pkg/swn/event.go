@@ -89,7 +89,7 @@ func (s *SWN) PassEventToNetwork(evt *pb.Event) error {
 		return ErrEmptyEvent
 	}
 
-	destMa, err := multiaddr.NewMultiaddrBytes(evt.Dest.GetAddr())
+	destMa, err := multiaddr.NewMultiaddrBytes(evt.GetDest())
 	if err != nil {
 		return err
 	}

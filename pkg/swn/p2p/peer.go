@@ -98,8 +98,8 @@ func (p *Peer) Pretty(e *pb.Event) string {
 	}
 	return fmt.Sprintf(
 		"Dest: %s, Lexicon: %s, Data: %s",
-		string(e.Dest.GetAddr()),
-		string(e.Lexicon.GetUri()),
+		string(e.GetDest()),
+		string(e.GetLexiconUri()),
 		string(e.GetData()),
 	)
 }

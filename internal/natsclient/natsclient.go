@@ -88,7 +88,7 @@ func (n *NatsClient) RecvDownstream(ctx context.Context, event *pb.Event) error 
 func (n *NatsClient) SendUpstream(event *pb.Event) error {
 	var moduleSubj string
 
-	uri := event.Lexicon.GetUri()
+	uri := event.GetLexiconUri()
 	parts := strings.Split(uri, "/")
 	if len(parts) != 2 {
 		return ErrInvalidEventLexicon

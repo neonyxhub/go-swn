@@ -21,13 +21,9 @@ import (
 
 func mockEvent(i int) (*api.Event, []byte, error) {
 	evt := &api.Event{
-		Dest: &api.Destination{
-			Addr: []byte(fmt.Sprintf("addr-%v", i)),
-		},
-		Lexicon: &api.LexiconUri{
-			Uri: fmt.Sprintf("uri-%v", i),
-		},
-		Data: []byte(fmt.Sprintf("data-%v", i)),
+		Dest:       []byte(fmt.Sprintf("addr-%v", i)),
+		LexiconUri: fmt.Sprintf("uri-%v", i),
+		Data:       []byte(fmt.Sprintf("data-%v", i)),
 	}
 
 	rawEvt, err := proto.Marshal(evt)
@@ -56,7 +52,7 @@ func TestProduceUpstream(t *testing.T) {
 			case <-done:
 				return
 			case event := <-sender.EventIO.Upstream:
-				require.True(t, strings.HasPrefix(event.Lexicon.Uri, "uri-"))
+				require.True(t, strings.HasPrefix(event.LexiconUri, "uri-"))
 				mu.Lock()
 				completed += 1
 				mu.Unlock()
@@ -126,7 +122,7 @@ func TestStopEventListening(t *testing.T) {
 	swn.StopEventListening()
 
 	select {
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(500 * time.Millisecond):
 		require.True(t, true, "should timeout as no event listener is stopped")
 	case <-done:
 		t.Fatal("should not reached here")
@@ -144,7 +140,7 @@ func TestPassEventToNetwork(t *testing.T) {
 
 	evt, _, _ := mockEvent(1)
 	ma := getter.Peer.Getp2pMA()
-	evt.Dest.Addr = ma.Bytes()
+	evt.Dest = ma.Bytes()
 
 	err = sender.PassEventToNetwork(evt)
 	require.NoError(t, err)
@@ -155,15 +151,15 @@ func TestPassEventToNetwork(t *testing.T) {
 
 	// invalid NewMultiaddrBytes()
 	evt, _, _ = mockEvent(1)
-	evt.Dest.Addr = []byte{}
+	evt.Dest = []byte{}
 	err = sender.PassEventToNetwork(evt)
 	require.Error(t, err, "empty multiaddr")
 
 	// invalid AddrInfoFromP2pAddr()
 	evt, _, _ = mockEvent(1)
-	evt.Dest.Addr = []byte{0xbe, 0xef}
+	evt.Dest = []byte{0xbe, 0xef}
 	err = sender.PassEventToNetwork(evt)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.Error(t, peer.ErrInvalidAddr)
 
 	// ErrNoExistingConnection
@@ -258,7 +254,7 @@ func TestMultipleSenders(t *testing.T) {
 			// event for getter from senders
 			evt, _, _ := mockEvent(senderId)
 			ma := getter.Peer.Getp2pMA()
-			evt.Dest.Addr = ma.Bytes()
+			evt.Dest = ma.Bytes()
 
 			err = sender.ConnPassEvent(context.Background(), evt, conns[0])
 			require.NoError(t, err)
